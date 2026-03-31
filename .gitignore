@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+venv/
+.venv/
+env/
+
+# 环境变量 & 密钥
+.env
+.env.*
+!.env.example
+secrets.yaml
+credentials.json
+
+# 运行产出（数据量大，不入库）
+output/articles_view.html
+output/articles_key_insight.html
+output/summary_report.md
+data/raw/articles.json
+data/raw/test_articles.json
+data/processed/articles_by_account.json
+
+# 保留 summaries.json（AI 摘要缓存，有价值）
+# output/summaries.json  ← 不忽略
+
+# 日志
+logs/
+*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# launchd 本地安装标记
+*.plist.installed

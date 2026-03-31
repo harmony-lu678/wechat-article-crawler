@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.user.wechat-article-crawler.daily</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>/Users/mac389/Downloads/wechat-article-crawler/scripts/run_daily_crawl.sh</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>/Users/mac389/Downloads/wechat-article-crawler</string>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>9</integer>
+    <key>Minute</key>
+    <integer>30</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>/Users/mac389/Downloads/wechat-article-crawler/logs/launchd_stdout.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/mac389/Downloads/wechat-article-crawler/logs/launchd_stderr.log</string>
+</dict>
+</plist>

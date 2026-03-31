@@ -1,0 +1,93 @@
+# 微信公众号文章爬虫配置文件
+
+# 输入CSV文件路径
+csv_file: "/Users/mac389/Desktop/资产backup-行业资讯.csv"
+
+# 可选：额外公众号文章链接文件（与 CSV 合并去重后爬取；每行一个 URL，# 开头为注释）
+# 你若单独发链接给助手，可让人写入此文件，或自己粘贴保存
+extra_urls_file: "config/extra_urls.txt"
+
+# 时间范围设置（天数）；设大值以包含 CSV 中全部文章（如 131 篇）
+days_range: 9999
+
+# 爬虫设置
+crawler:
+  request_interval: 3  # 请求间隔(秒)
+  timeout: 30  # 请求超时(秒)
+  max_retries: 3  # 最大重试次数
+  retry_delay: 5  # 重试延迟(秒)
+
+# AI总结配置（可选，使用OpenAI兼容接口）
+ai_summary:
+  enabled: true  # 启用 AI，总结输出到 output/summary_report.md 与 summaries.json
+  api_key: "sk-tcxuGyKpmJAR_Ho7qc4wtQ"  # API密钥
+  base_url: "http://10.185.0.178:8080/v1"  # API地址（支持兼容接口）
+  model: "seaart-mix-sonnet-4-5"  # 模型名称
+  # 强制使用 OpenAI 兼容接口（/chat/completions）；避免因模型名包含 sonnet 被误判成 anthropic
+  api_type: "openai"
+  # 对外展示阶段：优先使用 output/summaries.json 缓存；若无缓存则用简单总结兜底（不请求 API）
+  cache_only: true
+  max_tokens: 4000  # 单次总结最大token数
+  temperature: 0.3  # 生成温度
+  # 送入模型前每篇正文最多截断字符（减轻文末导流/互推等重复块与超长文）
+  summary_max_chars_per_article: 12000
+
+  # 总结提示词模板
+  system_prompt: |
+    你是一位专业的内容分析师，擅长提炼文章核心信息和关键要点。
+    请仔细阅读提供的公众号文章内容，生成结构化的总结报告。
+
+    要求：
+    1. 信息完整、覆盖主要主题与关键数据，但禁止在不同章节用不同措辞重复同一观点（同一事实只写一次）。
+    2. 保留重要数据、案例、观点；避免在「核心内容」「洞察」「文末总结」中换汤不换药地复述。
+    3. 提取技术细节和创新点；识别行业趋势与洞察。
+    4. 结构清晰、逻辑连贯；保留具体产品名、技术名、公司名、数据等关键信息。
+
+  user_prompt_template: |
+    请为以下公众号【{account_name}】近30天发布的文章生成一份总结报告（各章节之间不要重复堆砌相同内容）。
+
+    文章列表（共{article_count}篇）：
+    {articles_content}
+
+    请按以下结构生成总结（后文若与前文已有内容重复，请合并省略，勿再次展开）：
+
+    ## 📊 公众号概览
+    - 发文频率和时间分布
+    - 主要内容方向和主题（高度概括，细节放到下一节）
+
+    ## 🔑 核心内容总结
+    ### 主题1: [主题名称]
+    - 关键信息点、重要数据、技术细节、产品/工具/方案名称（每条信息只在此处出现一次）
+
+    ### 主题2: [主题名称]
+    ...（依次列出主要主题；主题之间不要重复叙述同一案例）
+
+    ## 💡 关键洞察与趋势
+    - 仅写与上文不重复的新增归纳：行业趋势、创新点、产品/方案特点（禁止再抄一遍「核心内容」里已写过的段落）
+
+    ## 📌 重点文章推荐
+    仅列出最有价值的 3–5 篇，每篇格式固定为：
+    - **标题**：一句话说明为何值得读（勿复述前文主题小节已写过的长分析）
+
+    ## 🎯 总结
+    用 2–3 段话概括该公众号的核心价值与内容特色；若与前面章节重复，请用更高抽象层级的一句话收束，不要重复列举已出现过的案例与数据。
+
+# last30days-skill 风格：打分（相关/时效/正文丰富度）+ 近重复剔除
+# 见 last30days_signals.py 与 https://github.com/mvanhorn/last30days-skill
+last30days_signals:
+  enabled: true
+  dedupe: true
+  dedupe_threshold: 0.72
+
+# 六段式「高密度干货」HTML（scripts/export_key_insight_html.py，共用 ai_summary 的 API）
+key_insight_html:
+  enabled: true
+  max_article_chars: 18000
+  request_interval_sec: 2
+
+# 输出设置
+output:
+  save_raw_html: false  # 是否保存原始HTML
+  save_markdown: true  # 是否保存Markdown格式
+  save_json: true  # 是否保存JSON格式
+  generate_index: true  # 是否生成索引文件

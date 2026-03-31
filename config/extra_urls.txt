@@ -1,0 +1,5 @@
+# 单独补充的微信公众号文章链接（与 Desktop CSV 合并去重后一并爬取）
+# 每行一个链接；行首 # 为注释；一行里也可以混写说明文字，会自动提取 mp.weixin.qq.com 链接
+#
+# 示例（删掉 # 即可生效）：
+# https://mp.weixin.qq.com/s/xxxxxxxx
