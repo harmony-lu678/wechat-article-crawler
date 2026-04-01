@@ -91,7 +91,10 @@ poll:
   # 【推荐】WeChat 登录 Cookie，填入后走直连模式（速度更快、覆盖更全）
   # 获取方式：浏览器登录 https://mp.weixin.qq.com -> F12 -> Network -> 任意请求 -> Cookie 头
   # 留空则自动降级为 Sogou 搜索模式
-  wechat_cookie: ""
+  # 凭证从环境变量读取（见 .env 文件，不提交到 git）
+  # 手动填写时也可在此处直接写字符串（注意不要 commit）
+  wechat_cookie: ""   # 优先读 .env WX_COOKIE
+  wechat_token:  ""   # 优先读 .env WX_TOKEN
   # 每个账号轮询间隔（秒），避免触发反爬
   request_interval: 3
   # 监控账号列表文件（自动从 processed 数据生成，也可手动编辑）

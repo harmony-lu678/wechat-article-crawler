@@ -46,8 +46,9 @@ EXTRA_URLS = os.path.join(ROOT, "config", "extra_urls.txt")
 ACCOUNTS_FILE = os.path.join(ROOT, "config", "monitor_accounts.yaml")
 PROC = os.path.join(ROOT, "data", "processed", "articles_by_account.json")
 
-SOGOU_SEARCH = "https://weixin.sogou.com/weixin"
-WX_GETMSG = "https://mp.weixin.qq.com/mp/profile_ext"
+SOGOU_SEARCH  = "https://weixin.sogou.com/weixin"
+WX_SEARCHBIZ  = "https://mp.weixin.qq.com/cgi-bin/searchbiz"
+WX_APPMSG     = "https://mp.weixin.qq.com/cgi-bin/appmsg"
 
 HEADERS_BROWSER = {
     "User-Agent": (
@@ -61,9 +62,33 @@ HEADERS_BROWSER = {
 
 # ── 工具函数 ──────────────────────────────────────────────────────────────────
 
+def _load_dotenv() -> dict[str, str]:
+    """读取项目根目录的 .env 文件，返回 key→value 字典（不覆盖已有环境变量）。"""
+    env_path = os.path.join(ROOT, ".env")
+    env: dict[str, str] = {}
+    if not os.path.isfile(env_path):
+        return env
+    with open(env_path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            env[k.strip()] = v.strip()
+    return env
+
+
 def load_config() -> dict:
     with open(os.path.join(ROOT, "config.yaml"), encoding="utf-8") as f:
-        return yaml.safe_load(f)
+        cfg = yaml.safe_load(f)
+    # 用 .env / 环境变量补充 cookie / token（.env 优先于 config.yaml 空值）
+    dotenv = _load_dotenv()
+    poll = cfg.setdefault("poll", {})
+    if not poll.get("wechat_cookie"):
+        poll["wechat_cookie"] = os.environ.get("WX_COOKIE") or dotenv.get("WX_COOKIE", "")
+    if not poll.get("wechat_token"):
+        poll["wechat_token"] = os.environ.get("WX_TOKEN") or dotenv.get("WX_TOKEN", "")
+    return cfg
 
 
 def load_accounts() -> list[dict]:
@@ -148,87 +173,98 @@ def parse_sogou_date(date_str: str, now: datetime) -> Optional[datetime]:
     return None
 
 
-# ── 模式 1：WeChat 直连（需 cookie）────────────────────────────────────────────
+# ── 模式 1：WeChat MP 后台直连（需 cookie + token）──────────────────────────────
 
-def fetch_wx_direct(biz_id: str, cookie: str, hours: int,
-                    session: requests.Session) -> list[str]:
+def _get_fakeid(account_name: str, token: str,
+                session: requests.Session) -> Optional[str]:
+    """通过 searchbiz 接口用账号名查 fakeid。"""
+    try:
+        resp = session.get(WX_SEARCHBIZ, params={
+            "action": "search_biz",
+            "begin": 0,
+            "count": 5,
+            "query": account_name,
+            "token": token,
+            "lang": "zh_CN",
+            "f": "json",
+            "ajax": "1",
+        }, timeout=15)
+        data = resp.json()
+        biz_list = data.get("list", [])
+        if not biz_list:
+            return None
+        # 优先完全匹配 nickname
+        for b in biz_list:
+            if b.get("nickname", "").strip() == account_name.strip():
+                return b.get("fakeid")
+        return biz_list[0].get("fakeid")
+    except Exception as e:
+        logger.warning("searchbiz %s 失败: %s", account_name, e)
+        return None
+
+
+def fetch_wx_direct(account_name: str, cookie: str, token: str,
+                    hours: int, session: requests.Session) -> list[str]:
     """
-    通过 WeChat profile_ext getmsg 接口拉取账号最新文章列表，返回符合时间窗口的 URL 列表。
+    通过 MP 后台 appmsg list_ex 接口拉取账号最新文章列表，返回符合时间窗口的 URL。
+    Step1: searchbiz 获取 fakeid
+    Step2: appmsg list_ex 分页拉文章，直到超出时间窗口
     """
-    urls: list[str] = []
-    offset = 0
-    count = 10
+    fakeid = _get_fakeid(account_name, token, session)
+    if not fakeid:
+        logger.debug("未找到 fakeid: %s，跳过直连", account_name)
+        return []
+
     cutoff = datetime.now() - timedelta(hours=hours)
+    urls: list[str] = []
+    begin = 0
+    count = 20
 
     while True:
-        params = {
-            "action": "getmsg",
-            "__biz": biz_id,
-            "f": "json",
-            "offset": offset,
-            "count": count,
-            "is_ok": "1",
-            "scene": "124",
-            "uin": "777",
-            "key": "777",
-            "pass_ticket": "",
-            "wxtoken": "",
-            "appmsg_token": "",
-            "x5": "0",
-        }
-        headers = {**HEADERS_BROWSER, "Cookie": cookie,
-                   "Referer": "https://mp.weixin.qq.com/"}
         try:
-            resp = session.get(WX_GETMSG, params=params, headers=headers, timeout=15)
+            resp = session.get(WX_APPMSG, params={
+                "action": "list_ex",
+                "begin": begin,
+                "count": count,
+                "fakeid": fakeid,
+                "type": "9",
+                "query": "",
+                "token": token,
+                "lang": "zh_CN",
+                "f": "json",
+                "ajax": "1",
+            }, timeout=15)
             data = resp.json()
         except Exception as e:
-            logger.warning("WX 直连 %s 失败: %s", biz_id, e)
+            logger.warning("appmsg %s 失败: %s", account_name, e)
             break
 
-        if data.get("ret") != 0:
-            logger.warning("WX 直连 %s 返回错误 ret=%s", biz_id, data.get("ret"))
+        base = data.get("base_resp", {})
+        if base.get("ret") != 0:
+            logger.warning("appmsg %s ret=%s", account_name, base.get("ret"))
             break
 
-        general_msg_list = data.get("general_msg_list", "{}")
-        if isinstance(general_msg_list, str):
-            try:
-                general_msg_list = json.loads(general_msg_list)
-            except Exception:
-                break
-
-        msg_list = general_msg_list.get("list", [])
-        if not msg_list:
+        art_list = data.get("app_msg_list", [])
+        if not art_list:
             break
 
         has_older = False
-        for msg in msg_list:
-            comm = msg.get("comm_msg_info", {})
-            ts = comm.get("datetime", 0)
+        for art in art_list:
+            ts = art.get("update_time", 0)
             pub_dt = datetime.fromtimestamp(ts) if ts else None
-
-            app_info = msg.get("app_msg_ext_info", {})
-            content_url = app_info.get("content_url", "")
-            if not content_url:
-                continue
-            # 解码 HTML 实体
-            content_url = content_url.replace("&amp;", "&")
+            url = art.get("link", "")
 
             if pub_dt and pub_dt < cutoff:
                 has_older = True
-                continue
-            if is_wx_article_url(content_url):
-                urls.append(content_url)
+                continue  # 不 break，同一批次可能混排
+            if is_wx_article_url(url):
+                urls.append(url)
 
-            # 多图文 sub_list
-            for sub in app_info.get("multi_app_msg_item_list", []):
-                sub_url = sub.get("content_url", "").replace("&amp;", "&")
-                if is_wx_article_url(sub_url):
-                    urls.append(sub_url)
-
-        if has_older or not data.get("can_msg_continue"):
+        # 若本批全部或部分超出时间窗口，不再翻页
+        if has_older or len(art_list) < count:
             break
 
-        offset += count
+        begin += count
         time.sleep(1.5)
 
     return urls
@@ -308,26 +344,32 @@ def poll(hours: int = 24, dry_run: bool = False) -> int:
 
     poll_cfg = config.get("poll", {})
     wx_cookie = poll_cfg.get("wechat_cookie", "").strip()
+    wx_token  = poll_cfg.get("wechat_token",  "").strip()
     request_interval = poll_cfg.get("request_interval", 3)
 
     existing_urls = load_existing_urls()
     new_urls: list[str] = []
 
     session = requests.Session()
-    session.headers.update(HEADERS_BROWSER)
+    session.headers.update({
+        **HEADERS_BROWSER,
+        "Cookie": wx_cookie,
+        "Referer": "https://mp.weixin.qq.com/",
+    })
 
-    mode = "WeChat直连" if wx_cookie else "Sogou搜索"
+    use_direct = bool(wx_cookie and wx_token)
+    mode = "WeChat MP后台直连" if use_direct else "Sogou搜索"
     logger.info("轮询模式: %s | 窗口: 前 %d 小时 | 账号数: %d",
                 mode, hours, len(accounts))
 
     for i, acc in enumerate(accounts):
         name = acc.get("name", "")
         biz = acc.get("biz_id", "")
-        logger.info("[%d/%d] %s (%s)", i + 1, len(accounts), name, biz)
+        logger.info("[%d/%d] %s", i + 1, len(accounts), name)
 
         try:
-            if wx_cookie and biz:
-                found = fetch_wx_direct(biz, wx_cookie, hours, session)
+            if use_direct:
+                found = fetch_wx_direct(name, wx_cookie, wx_token, hours, session)
             else:
                 found = fetch_sogou(name, hours, session)
         except Exception as e:
