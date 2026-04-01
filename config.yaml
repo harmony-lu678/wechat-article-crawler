@@ -7,8 +7,9 @@ csv_file: "/Users/mac389/Desktop/资产backup-行业资讯.csv"
 # 你若单独发链接给助手，可让人写入此文件，或自己粘贴保存
 extra_urls_file: "config/extra_urls.txt"
 
-# 时间范围设置（天数）；设大值以包含 CSV 中全部文章（如 131 篇）
-days_range: 9999
+# 时间范围设置（天数）：每日运行时只处理最近 1 天内的文章；
+# 首次全量导入历史数据时可临时改为 9999
+days_range: 1
 
 # 爬虫设置
 crawler:
@@ -25,8 +26,8 @@ ai_summary:
   model: "seaart-mix-sonnet-4-5"  # 模型名称
   # 强制使用 OpenAI 兼容接口（/chat/completions）；避免因模型名包含 sonnet 被误判成 anthropic
   api_type: "openai"
-  # 对外展示阶段：优先使用 output/summaries.json 缓存；若无缓存则用简单总结兜底（不请求 API）
-  cache_only: true
+  # false = 每次运行为新文章调用 API 生成摘要；true = 只用缓存（离线）
+  cache_only: false
   max_tokens: 4000  # 单次总结最大token数
   temperature: 0.3  # 生成温度
   # 送入模型前每篇正文最多截断字符（减轻文末导流/互推等重复块与超长文）
@@ -84,6 +85,17 @@ key_insight_html:
   enabled: true
   max_article_chars: 18000
   request_interval_sec: 2
+
+# 轮询配置（scripts/poll_new_articles.py）
+poll:
+  # 【推荐】WeChat 登录 Cookie，填入后走直连模式（速度更快、覆盖更全）
+  # 获取方式：浏览器登录 https://mp.weixin.qq.com -> F12 -> Network -> 任意请求 -> Cookie 头
+  # 留空则自动降级为 Sogou 搜索模式
+  wechat_cookie: ""
+  # 每个账号轮询间隔（秒），避免触发反爬
+  request_interval: 3
+  # 监控账号列表文件（自动从 processed 数据生成，也可手动编辑）
+  accounts_file: "config/monitor_accounts.yaml"
 
 # 输出设置
 output:
