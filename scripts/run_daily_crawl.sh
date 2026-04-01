@@ -25,13 +25,21 @@ fi
   echo "--- Step 2: 爬取 & 摘要 ---"
   "$PY" "$ROOT/main.py" --mode full
 
-  # Step 3: 生成阅读页 HTML
-  echo "--- Step 3: 导出阅读页 ---"
+  # Step 3: 为新文章生成 AI 摘要（未在 summaries.json 缓存的文章）
+  echo "--- Step 3: AI 摘要补全 ---"
+  "$PY" "$ROOT/scripts/summarize_new_articles.py"
+
+  # Step 4: 生成阅读页 HTML
+  echo "--- Step 4: 导出阅读页 ---"
   "$PY" "$ROOT/scripts/export_articles_html.py"
 
-  # Step 4: 六段式高密度提炼（耗 API，仅当 RUN_KEY_INSIGHT=1 时跑）
+  # Step 5: 生成每日简报 HTML（带 AI 摘要 Markdown 渲染）
+  echo "--- Step 5: 导出每日简报 ---"
+  "$PY" "$ROOT/scripts/export_daily_report.py"
+
+  # Step 6: 六段式高密度提炼（耗 API，仅当 RUN_KEY_INSIGHT=1 时跑）
   if [[ "${RUN_KEY_INSIGHT:-0}" == "1" ]]; then
-    echo "--- Step 4: key insight HTML ---"
+    echo "--- Step 6: key insight HTML ---"
     "$PY" "$ROOT/scripts/export_key_insight_html.py"
   fi
 

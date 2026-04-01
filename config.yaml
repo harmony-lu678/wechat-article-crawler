@@ -21,10 +21,10 @@ crawler:
 # AI总结配置（可选，使用OpenAI兼容接口）
 ai_summary:
   enabled: true  # 启用 AI，总结输出到 output/summary_report.md 与 summaries.json
-  api_key: "sk-tcxuGyKpmJAR_Ho7qc4wtQ"  # API密钥
-  base_url: "http://10.185.0.178:8080/v1"  # API地址（支持兼容接口）
-  model: "seaart-mix-sonnet-4-5"  # 模型名称
-  # 强制使用 OpenAI 兼容接口（/chat/completions）；避免因模型名包含 sonnet 被误判成 anthropic
+  api_key: "sk-8iyYZG0dgZ0ZYOITHc04qg"  # API密钥
+  base_url: "http://10.185.0.178:8080/v1"  # API地址（OpenAI兼容接口）
+  model: "claude-sonnet-4-6"  # 模型名称
+  # OpenAI 兼容接口（实际走 /v1/chat/completions）
   api_type: "openai"
   # false = 每次运行为新文章调用 API 生成摘要；true = 只用缓存（离线）
   cache_only: false

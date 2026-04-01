@@ -1,0 +1,2306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>AI资讯日报 · 2026-04-01</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/wordcloud2.js@1.2.2/src/wordcloud2.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+<style>
+:root {
+  --bg:#f5f6fa; --surface:#fff; --primary:#2c3e7a; --accent:#3498db;
+  --border:#e8ecf0; --text:#2c3e50; --muted:#7f8c8d; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;
+      background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
+/* ─── 顶栏 ─────────────────────────────── */
+.topbar{background:var(--primary);color:#fff;padding:12px 24px;display:flex;
+         align-items:center;justify-content:space-between;position:sticky;
+         top:0;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2);}
+.topbar-title{font-size:18px;font-weight:700;}
+.date-filter{display:flex;align-items:center;gap:8px;font-size:13px;}
+.date-input{padding:4px 8px;border:1px solid rgba(255,255,255,.4);border-radius:6px;
+             background:rgba(255,255,255,.15);color:#fff;font-size:12px;}
+.date-input::-webkit-calendar-picker-indicator{filter:invert(1);}
+.date-today-btn{padding:4px 10px;background:rgba(255,255,255,.25);border:none;
+                 border-radius:6px;color:#fff;cursor:pointer;font-size:12px;}
+.date-today-btn:hover{background:rgba(255,255,255,.4);}
+.date-filter-count{font-size:12px;opacity:.85;}
+/* ─── 布局 ─────────────────────────────── */
+.layout{display:flex;flex:1;height:calc(100vh - 52px);overflow:hidden;}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);
+          overflow-y:auto;flex-shrink:0;padding:12px 0;}
+.sidebar-section{padding:6px 16px;font-size:11px;color:var(--muted);font-weight:600;
+                  letter-spacing:.5px;text-transform:uppercase;margin-top:8px;}
+.nav-item{padding:9px 16px;cursor:pointer;font-size:14px;display:flex;align-items:center;
+           justify-content:space-between;transition:background .15s;border-left:3px solid transparent;}
+.nav-item:hover{background:#f0f4ff;}
+.nav-item.active{background:#eef2ff;border-left-color:var(--accent);color:var(--accent);font-weight:600;}
+.nav-item.empty-filtered{opacity:.4;pointer-events:none;}
+.nav-badge{background:var(--accent);color:#fff;border-radius:10px;font-size:11px;
+            padding:1px 7px;min-width:20px;text-align:center;}
+.home-nav{padding:10px 16px;cursor:pointer;font-size:14px;font-weight:600;
+           color:var(--primary);border-left:3px solid var(--primary);
+           background:#eef2ff;display:flex;align-items:center;gap:6px;}
+/* ─── 内容区 ─────────────────────────────── */
+.content{flex:1;overflow-y:auto;padding:20px 24px;}
+.wc-wrap{background:var(--surface);border-radius:var(--radius);padding:20px;
+          border:1px solid var(--border);margin-bottom:20px;}
+.wc-title{font-size:16px;font-weight:700;color:var(--primary);margin-bottom:12px;}
+#wc-canvas{width:100%;height:260px;}
+.wc-fallback{display:flex;flex-wrap:wrap;gap:8px;}
+.wc-fallback span{background:#eef2ff;color:var(--primary);border-radius:20px;
+                   padding:4px 12px;font-size:13px;}
+.top-articles{background:var(--surface);border-radius:var(--radius);padding:20px;
+               border:1px solid var(--border);}
+.top-articles h3{font-size:15px;font-weight:700;color:var(--primary);margin-bottom:12px;}
+.top-item{padding:10px 0;border-bottom:1px solid var(--border);display:flex;
+           align-items:flex-start;gap:10px;}
+.top-item:last-child{border-bottom:none;}
+.top-rank{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;
+           font-size:12px;font-weight:700;display:flex;align-items:center;
+           justify-content:center;flex-shrink:0;margin-top:1px;}
+.top-rank.gold{background:#f39c12;}.top-rank.silver{background:#95a5a6;}.top-rank.bronze{background:#cd7f32;}
+.top-item a{font-size:14px;color:var(--text);text-decoration:none;line-height:1.5;}
+.top-item a:hover{color:var(--accent);}
+.top-item-meta{font-size:12px;color:var(--muted);margin-top:2px;}
+/* ─── 文章卡片 ─────────────────────────────── */
+.article-card{background:var(--surface);border-radius:var(--radius);padding:16px 20px;
+               border:1px solid var(--border);margin-bottom:14px;transition:box-shadow .15s;}
+.article-card:hover{box-shadow:0 2px 12px rgba(44,62,122,.1);}
+.card-header{display:flex;align-items:flex-start;justify-content:space-between;
+              gap:12px;margin-bottom:4px;}
+.card-title{font-size:15px;font-weight:600;color:var(--text);text-decoration:none;
+             line-height:1.5;flex:1;}
+.card-title:hover{color:var(--accent);}
+.card-score{border-radius:20px;padding:2px 10px;color:#fff;font-size:12px;
+             font-weight:700;white-space:nowrap;flex-shrink:0;}
+.card-meta{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.summary-label{font-size:11px;color:var(--accent);font-weight:700;
+                letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;}
+.card-summary{font-size:13px;color:#444;line-height:1.8;margin-bottom:10px;
+               background:#f8faff;padding:12px 16px;border-radius:8px;
+               border-left:3px solid var(--accent);}
+/* Markdown 渲染样式 */
+.card-summary h1,.card-summary h2,.card-summary h3,.card-summary h4{
+  color:var(--primary);margin:10px 0 5px;font-weight:700;}
+.card-summary h1{font-size:15px;}
+.card-summary h2{font-size:14px;border-bottom:1px solid var(--border);padding-bottom:3px;}
+.card-summary h3{font-size:13px;}
+.card-summary p{margin:4px 0;line-height:1.75;}
+.card-summary ul,.card-summary ol{padding-left:18px;margin:4px 0;}
+.card-summary li{margin:3px 0;line-height:1.7;}
+.card-summary strong{color:#2c3e50;font-weight:700;}
+.card-summary em{color:#16a085;}
+.card-summary code{background:#eef2ff;padding:1px 5px;border-radius:4px;
+                    font-size:12px;color:#c0392b;font-family:monospace;}
+.card-summary pre{background:#f4f6fb;padding:10px;border-radius:6px;
+                   overflow-x:auto;font-size:12px;margin:6px 0;}
+.card-summary blockquote{border-left:3px solid var(--accent);color:#555;margin:6px 0;
+                          background:#f0f7ff;border-radius:0 4px 4px 0;padding:6px 10px;}
+.card-summary hr{border:none;border-top:1px solid var(--border);margin:8px 0;}
+.card-summary table{border-collapse:collapse;width:100%;font-size:12px;margin:6px 0;}
+.card-summary th{background:#eef2ff;padding:5px 8px;border:1px solid var(--border);
+                  color:var(--primary);font-weight:700;text-align:left;}
+.card-summary td{padding:4px 8px;border:1px solid var(--border);}
+.card-summary tr:nth-child(even) td{background:#f8faff;}
+.card-no-summary{font-size:12px;color:var(--muted);margin-bottom:8px;font-style:italic;}
+details summary{font-size:13px;color:var(--muted);cursor:pointer;user-select:none;padding:4px 0;}
+details[open] summary{color:var(--accent);}
+.card-excerpt{font-size:13px;line-height:1.8;color:#444;margin-top:8px;}
+.excerpt-p{margin-bottom:8px;}
+.hl-num{color:#e74c3c;font-weight:600;}
+.hl-quote{color:#16a085;font-style:italic;}
+.hl-verb{font-weight:600;color:var(--primary);}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-title">🗞️ AI资讯日报 · 2026-04-01</div>
+  <div class="date-filter">
+    <span>📅</span>
+    <input class="date-input" type="date" id="dateFrom" value="2026-04-01">
+    <span>—</span>
+    <input class="date-input" type="date" id="dateTo" value="2026-04-01">
+    <button class="date-today-btn" onclick="setToday()">今天</button>
+    <span class="date-filter-count" id="filterCount"></span>
+  </div>
+</div>
+<div class="layout">
+  <div class="sidebar">
+    <div class="home-nav" onclick="showPanel('home')">🏠 今日热点</div>
+    <div class="sidebar-section">公众号 (16)</div>
+    <div class="nav-item" data-acc="AIGC_Studio" onclick="showPanel('AIGC_Studio')">AIGC Studio<span class="nav-badge">4</span></div>
+<div class="nav-item" data-acc="AIGC开放社区" onclick="showPanel('AIGC开放社区')">AIGC开放社区<span class="nav-badge">4</span></div>
+<div class="nav-item" data-acc="51CTO技术栈" onclick="showPanel('51CTO技术栈')">51CTO技术栈<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="AI_Humanist_by杉森楠" onclick="showPanel('AI_Humanist_by杉森楠')">AI Humanist by杉森楠<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="AI产品阿颖" onclick="showPanel('AI产品阿颖')">AI产品阿颖<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="AI寒武纪" onclick="showPanel('AI寒武纪')">AI寒武纪<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="AI工程化" onclick="showPanel('AI工程化')">AI工程化<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="AI微果酱" onclick="showPanel('AI微果酱')">AI微果酱<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="AI进修生" onclick="showPanel('AI进修生')">AI进修生<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="A梦进化论" onclick="showPanel('A梦进化论')">A梦进化论<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="Web3天空之城" onclick="showPanel('Web3天空之城')">Web3天空之城<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="Z_Finance" onclick="showPanel('Z_Finance')">Z Finance<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="刘聪NLP" onclick="showPanel('刘聪NLP')">刘聪NLP<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="卡尔的AI沃茨" onclick="showPanel('卡尔的AI沃茨')">卡尔的AI沃茨<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="开源星探" onclick="showPanel('开源星探')">开源星探<span class="nav-badge">1</span></div>
+<div class="nav-item" data-acc="探索AGI" onclick="showPanel('探索AGI')">探索AGI<span class="nav-badge">1</span></div>
+
+  </div>
+  <div class="content">
+    <div class="panel" id="panel-home">
+      <div class="wc-wrap">
+        <div class="wc-title">今日热点话题词云</div>
+        <canvas id="wc-canvas"></canvas>
+      </div>
+      <div class="top-articles">
+        <h3>📈 今日 Top 10 文章</h3>
+        <div id="topList"></div>
+      </div>
+    </div>
+    <div class="panel" id="panel-AIGC_Studio" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&amp;mid=2247500442&amp;idx=1&amp;sn=981be0ebb1bbf916f29700a6c693f553&amp;chksm=fcf53d7bcb82b46d67a42a4aeb5517f37637db997004bf0a97371c194094492e0adf48954cc8#rd" target="_blank">复旦大学 × 阶跃星辰联合开源图像编辑模型 PixelSmile：面向细粒度、连续可控人脸表情编辑的方法。</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC Studio</div>
+  <div class="card-summary" data-md="# PixelSmile：细粒度连续可控人脸表情编辑方法
+
+**来源**：复旦大学 × 阶跃星辰联合开源 | AIGC Studio
+
+---
+
+## 一、核心问题
+
+现有扩散式图像编辑模型在**粗粒度表情**（如开心、悲伤）上表现尚可，但在语义相近的表情对（惊讶/恐惧、愤怒/厌恶）上存在三类结构性缺陷：
+
+1. **结构性混淆**：相近情绪边界模糊，预测不稳定
+2. **强度控制不稳定**：无法连续、线性地调节表情幅度
+3. **身份漂移**：增强表情时破坏人物身份一致性
+
+**根本原因**：表情并非离散类别，而是连续情绪流形；传统 one-hot 标签训练导致模型学习到纠缠的表情表示。
+
+---
+
+## 二、整体方案（方法 + 数据 + 评测三位一体）
+
+| 组件 | 说明 |
+|------|------|
+| **PixelSmile** | 细粒度表情编辑扩散框架 |
+| **FFE 数据集** | 真人+动漫双域，~60,000 张图像，连续情感标注 |
+| **FFE-Bench** | 专项评测基准，4 类核心指标 |
+
+---
+
+## 三、FFE 数据集
+
+- **规模**：真人 + 动漫双域，约 60,000 张
+- **标注方式**：连续情感分数（非 one-hot），描述每张图在 12 类表情上的强度分布
+- **构建流程（四阶段）**：
+  1. **Collect**：建立高质量身份集合
+  2. **Compose**：构造结构化表情 prompt
+  3. **Generate**：生成 same-identity 多表情图像
+  4. **Annotate**：连续分数标注与过滤
+- **核心价值**：在相同身份下提供丰富表情变化，弥补传统数据集在细粒度监督上的缺口
+
+---
+
+## 四、FFE-Bench 评测指标
+
+| 指标 | 含义 |
+|------|------|
+| **mSCR** | 结构性混淆率，衡量相近表情是否被混淆 |
+| **HES** | 表情编辑与身份保持的综合平衡分 |
+| **CLS** | 连续控制的线性度与稳定性 |
+| **Acc** | 目标表情编辑准确率 |
+
+---
+
+## 五、PixelSmile 方法设计
+
+### 两条核心主线
+
+**① 连续控制**
+- 通过**文本潜变量插值**在中性表情与目标表情之间建立连续路径
+- 推理阶段平滑调节表情强度，无需参考表情图
+
+**② 表情解耦**
+- 引入 **Fully Symmetric Joint Training**，显式学习相邻情绪间的边界
+- 配合强度监督、对比学习、身份保持约束，联合优化三个目标
+
+### 实现基础
+- 基于预训练 **MMDiT**，通过 **LoRA** 适配
+- 继承扩散模型生成能力，同时加入表情语义层面的结构约束
+
+---
+
+## 六、实验结果
+
+### 对比通用编辑模型
+（对比对象：Nano Banana Pro、GPT-Image-1.5、Qwen-Image-Edit-2511、Seedream-4.5、LongCat-Image-Edit、FLUX.2 Klein）
+
+- **Acc-6（6类基础表情准确率）**：PixelSmile 达 **0.8627**，优于所有对比模型
+- **mSCR（结构性混淆）**：PixelSmile 达 **0.0550**，显著优于所有通用编辑模型
+- 身份保持：在有效编辑幅度与身份稳定之间取得更自然的平衡
+
+### 对比线性控制方法
+（对比对象：ConceptSlider、AttributeControl、Kontinuous-Kontext、SliderEdit）
+
+- 零样本文本插值已在 Qwen-Image-Edit-2511 上具备竞争力
+- 引入对称联合训练后，**CLS-6、CLS-12、HES** 均达该组最优
+- 现有控制基线普遍存在控制范围窄、响应跳变或身份退化问题
+
+---
+
+## 七、扩展能力
+
+- **动漫域**：FFE 数据集涵盖动漫域，PixelSmile 在动漫角色上同样支持连续表情编辑
+- **表情混合**：模型天然支持两种表情的复合生成（非额外设计），是连续表情空间学习后自然涌现的能力，表明模型学习到了可组合的表情语义空间
+
+---
+
+## 八、项目资源
+
+| 资源 | 链接 |
+|------|------|
+| 项目页 | https://ammmob.github.io/PixelSmile/ |
+| 论文 | https://arxiv.org/abs/2603.25728 |
+| GitHub | https://github.com/Ammmob/PixelSmile |
+| 模型 | https://huggingface.co/PixelSmile/PixelSmile |
+| Benchmark | https://huggingface.co/datasets/PixelSmile/FFE-Bench |
+| Demo | https://huggingface.co/spaces/PixelSmile/PixelSmile-Demo |
+
+---
+
+## 九、核心价值总结
+
+PixelSmile 的贡献不止于提供新模型，而是**系统性拆解了细粒度表情编辑问题**：重新定义监督范式（连续标注替代 one-hot）、设计针对性训练机制（对称联合训练）、建立专项评测协议（FFE-Bench），三者协同解决了表情混淆、强度控制和身份漂移三大核心挑战。对图像编辑、人像控制、可控生成方向具有较高参考价值。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">近年来，扩散式图像编辑模型和身份一致性生成方法已经显著提升了自然语言驱动的人像编辑能力，但细粒度表情编辑仍然没有被真正解决。现有模型通常能够生成差异明显的粗粒度表情，但在惊讶与恐惧、愤怒与厌恶这类语义相近、边界重叠的表情对上仍然表现不稳定。</p>
+<p class="excerpt-p">这一问题的核心在于表情并不是严格离散的类别，而是存在天然重叠的连续情绪流形。若训练和评测仍主要依赖离散标签，模型就很容易学习到纠缠的表情表示，进一步表现为结构性混淆、强度控制不稳定，以及编辑过程中的身份漂移。</p>
+<p class="excerpt-p">围绕这一问题，PixelSmile 以开源形式给出了一套由方法、数据集和评测基准组成的方案，目标是系统性地推进细粒度、连续可控且身份一致的人脸表情编辑。</p>
+<p class="excerpt-p">这张总览图概括了 PixelSmile 的主要能力边界：一是跨 12 类表情的编辑能力，二是连续强度控制，三是表情混合。</p>
+<p class="excerpt-p">具体来看，PixelSmile 在六类基础表情上的 Acc-6 <mark class="hl-action">达到</mark> 0.8627，<mark class="hl-action">超过</mark> Nano Banana Pro 和 GPT-Image-1.5。在结构性混淆指标 mSCR 上，PixelSmile <mark class="hl-action">达到</mark> 0.0550，同样显著优于包括 Nano Bana…</p></div></details>
+</div>
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&amp;mid=2247500442&amp;idx=2&amp;sn=44997252f7f75da41a1666261aaac712&amp;chksm=fcf53d7bcb82b46d567abe6172f7f0a604247a1b2d28912a06f757eee8a85a68161d4bb5b4ed#rd" target="_blank">HuggingFace热门榜单推荐！Voxtral TTS，仅4B参数SOTA性能，超低延迟9种语言语音生成转录和24kHz音频输出。</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC Studio</div>
+  <div class="card-summary" data-md="# Voxtral TTS 技术解析：4B参数的多语言语音生成新标杆
+
+## 📌 核心亮点速览
+
+| 特性 | 详情 |
+|------|------|
+| 参数量 | 仅 **4B（40亿）** |
+| 支持语言 | **9种**（英/法/德/西/荷/葡/意/印地/阿拉伯） |
+| 音频输出 | **24kHz**，支持WAV/MP3/FLAC等6种格式 |
+| 预设音色 | **20种**，支持自定义扩展 |
+| API定价 | **$0.016 / 1000字符** |
+| 榜单排名 | HuggingFace热门 **Top 2** |
+
+---
+
+## 🏗️ 技术架构深度解析
+
+```
+输入层
+├── 语音提示（5~25秒参考音频）
+└── 文本提示（9种语言）
+        ↓
+┌─────────────────────────────────┐
+│  Transformer解码器主干（3.4B）    │
+│  基于 Ministral 3B 构建          │
+│  → 预测语义Token                 │
+└─────────────────────────────────┘
+        ↓
+┌─────────────────────────────────┐
+│  流匹配声学Transformer（390M）   │
+│  16次NFE函数评估                 │
+│  → 生成声学潜在向量              │
+└─────────────────────────────────┘
+        ↓
+┌─────────────────────────────────┐
+│  神经音频编解码器（300M）        │
+│  语义VQ（词表8192）              │
+│  + 声学FSQ（36暗度×21级别）     │
+│  帧速率：12.5Hz 因果处理         │
+└─────────────────────────────────┘
+        ↓
+     24kHz 音频输出
+```
+
+### 三大核心模块说明
+
+**① Transformer主干（3.4B）**
+- 基于Mistral旗下**Ministral 3B**微调
+- 负责语义级别的语音内容理解
+- 每帧输出一个**语义Token**
+
+**② 流匹配Transformer（390M）**
+- 采用**Flow Matching**生成范式
+- 16步NFE迭代 → 兼顾质量与速度
+- 核心解决**低延迟 vs 高质量**的平衡难题
+
+**③ 神经编解码器（300M）**
+- 自研内部编解码器（非开源组件）
+- 双码本设计：
+  - 语义VQ：捕捉内容与语义
+  - 声学FSQ：还原音色与细节
+- 额外引入**ASR蒸馏损失**提升发音准确性
+
+---
+
+## 🔬 方法论创新点
+
+### 语境感知语音生成
+```
+传统TTS：  文本 → 朗读音频（机械）
+Voxtral：  文本 + 语境理解 → 情感化音频
+              ↑
+         中性/快乐/讽刺/停顿/节奏/语调
+```
+
+&gt; **核心理念**：自然语音的关键不是&quot;读出文本&quot;，
+&gt; 而是&quot;**理解文本**后再表达&quot;
+
+### 说话人建模能力
+- 捕捉说话者**个性特征**：自然停顿、节奏、语调
+- 支持**5~25秒**参考音频进行声音克隆适应
+- 超越传统朗读语音，实现个性化表达
+
+---
+
+## 📊 性能对比评估
+
+```
+评估维度：语音自然度（母语人士主观评测）
+
+延迟维度（TTFA首次音频播放时间）：
+Voxtral TTS    ████████░░  ≈ ElevenLabs Flash v2.5
+ElevenLabs v3  ██████████  较慢
+
+质量维度（自然度）：
+Voxtral TTS    █████████░  ≈ ElevenLabs v3
+ElevenLabs     ████████░░  Flash v2.5
+```
+
+### 评估方法论说明
+&gt; ⚠️ 多语言TTS的**WER和音频质量分数**无法衡量自然度
+&gt; → 团队采用**母语人士对比评估**作为核心指标
+&gt; → 强调**文化差异**和**典型说话模式**的理解
+
+---
+
+## 💡 应用场景定位
+
+```
+适用场景
+├── 🤖 实时语音代理（低延迟优先）
+├── 🌍 多语言客服系统（9语言覆盖）
+├── 📱 移动端/边缘部署（4B参数轻量）
+├── 🏢 企业自建语音AI栈（可定制）
+└── 🔄 高吞吐量批量推理任务
+```
+
+---
+
+## 🔗 资源链接整理
+
+| 资源 | 链接 |
+|------|------|
+| 📄 论文 | arxiv.org/pdf/2603.25551 |
+| 🏠 官方主页 | mistral.ai/news/voxtral-tts |
+| 🤗 模型权重 | HuggingFace: mistralai/Voxtral-4B-TTS-2603 |
+| 🎮 在线试用 | HuggingFace Spaces Demo |
+
+---
+
+## 🧐 技术评价与思考
+
+### ✅ 优势
+1. **参数效率极高**：4B参数达到SOTA，部署成本大幅降低
+2. **架构设计合理**：流匹配 + 自回归混合，兼顾质量与速度
+3. **多语言覆盖完整**：9种语言含阿拉伯语和印地语，全球化能力强
+4. **工程实用性强**：支持流式传输，适合实时场景
+
+### ⚠️ 需关注的点
+1. **编解码器未开源**：神经音频编解码器为内部组件，可复现性受限
+2. **评测主观性**：依赖母语人士主观评估，缺乏统一客观基准
+3. **16步NFE开销**：流匹配推理步骤较多，极致延迟场景需优化
+
+### 💭 行业意义
+&gt; Voxtral TTS的出现标志着**高质量TTS的民主化**加速
+&gt; ——企业无需依赖ElevenLabs等服务商，
+&gt; 可基于4B开放模型自建完整语音AI栈，
+&gt; 在**数据隐私、成本控制、定制化**三方面均获得更大主动权。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">它支持 <mark class="hl-num">9 种</mark>语言，性能一流：英语、法语、德语、西班牙语、荷兰语、葡萄牙语、意大利语、印地语和阿拉伯语。该模型参数量极小，仅有 <mark class="hl-num">40 亿</mark>个参数，使得基于 Voxtral 的语音助手能够大规模地实现自然、可靠且经济高效的语音效果。Voxtral TTS 现已可通过 API 提供，价格为每 <mark class="hl-num">1000 个</mark>字符 0.016 美元。</p>
+<p class="excerpt-p">• 支持<mark class="hl-num">9种</mark>主要语言的逼真、富有表现力的语音，具有自然的韵律和情感表达，并支持多种方言。</p>
+<p class="excerpt-p">• 具备文本转语音功能，预设<mark class="hl-num">20种</mark>语音，并可轻松适应新语音</p>
+<p class="excerpt-p">• <mark class="hl-num">3亿</mark>神经音频编解码器（对称编码器-解码器）</p>
+<p class="excerpt-p">该模型接收一段语音提示（5 至 25 秒）和一段支持 <mark class="hl-num">9 种</mark>语言的文本提示。对于每个音频帧，Transformer 主干网络预测一个语义标记，然后流匹配 Transformer 运行 <mark class="hl-num">16 次</mark>函数评估 (NFE) 以生成声学潜在词元。</p>
+<p class="excerpt-p">团队开发了一种内部编解码器，它使用语义 VQ（<mark class="hl-num">8192 个</mark>词汇表）和声学 FSQ（<mark class="hl-num">36 个</mark>暗度和 <mark class="hl-num">21 个</mark>级别）潜在信息对音频进行因果处理，并以 12.5Hz 帧速率生成音频。</p>
+<p class="excerpt-p">人工评估表明，Voxtral TTS 在保持与 E…</p></div></details>
+</div>
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&amp;mid=2247500442&amp;idx=3&amp;sn=f03b95459da6a62bcc0f3b66a9d37299&amp;chksm=fcf53d7bcb82b46d3769d6aa51d511c9d9c4937c381f5260bdf0619603f3d7545ad41a43aa4d#rd" target="_blank">CVPR 2026 | 探索水下世界的火眼金睛！中科大等联合提出MARIS，首个大规模水下开放词汇分割基准，让海洋探索更精准。</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC Studio</div>
+  <div class="card-summary" data-md="# CVPR 2026 | MARIS：首个大规模水下开放词汇实例分割框架
+
+## 一、研究背景与问题
+
+**应用场景**：海洋科学研究与水下机器人作业中，需精准识别和分割海洋生物及物体。
+
+**核心痛点**：传统水下实例分割模型基于&quot;闭集&quot;预测，无法识别训练阶段未见过的新物种。将开放词汇分割（OVS）技术迁移至水下场景面临三大挑战：
+1. **数据匮乏与标注粗糙**：缺乏大规模细粒度水下标注数据集
+2. **视觉退化严重**：水下光线差、散射等导致图像质量低
+3. **语义对齐缺失**：CLIP 等视觉语言模型在水下场景中语义对齐失效
+
+---
+
+## 二、方法框架：MARIS
+
+**全称**：Marine Open-Vocabulary Instance Segmentation
+
+**研究机构**：中国科学技术大学、中国电信人工智能研究院、西北工业大学、复旦大学
+
+**论文**：https://arxiv.org/abs/2510.15398 | **代码**：https://github.com/LiBingyu01/MARIS（已开源）
+
+### 2.1 数据集构建
+
+| 维度 | 详情 |
+|------|------|
+| 图像规模 | 超过 **1.6 万张** |
+| 类别体系 | **9 个大类 + 158 个细粒度子类** |
+| 鱼类细分 | 细化至 **76 种**具体物种 |
+| 实验设置 | 域内（In-domain）+ 跨域（Cross-domain）两种评估方式 |
+
+### 2.2 核心算法模块
+
+**① 几何先验增强模块（GPEM）**
+- 利用物体稳定的几何结构（如鱼的轮廓、鳍的形状）增强视觉特征
+- 在视觉外观因水下退化失效时，仍可提供关键识别信息
+
+**② 语义对齐注入机制（SAIM）**
+- 设计水下感知专用提示词（Prompt）
+- 引入自适应模板选择，动态增强语言嵌入
+- 针对性解决 CLIP 在水下场景的语义对齐偏差问题
+
+---
+
+## 三、实验结果
+
+| 评估设置 | 指标 | MARIS 得分 | 提升幅度 |
+|----------|------|-----------|---------|
+| 域内（整体） | mAP | **56.71%** | +3.30% vs. 次优模型 |
+| 域内（开放词汇类别） | mAP | **54.02%** | — |
+| 跨域（COCO→MARIS） | mAP | **46.18%** | **+5.91%** vs. 次优模型 |
+
+**定性表现**：在复杂背景和极差光线条件下，MARIS 仍能生成精确的边缘掩码，分割稳定性显著优于对比方法。
+
+---
+
+## 四、核心贡献总结
+
+1. **首个**大规模细粒度水下开放词汇实例分割基准数据集（1.6万图 / 158子类）
+2. **GPEM** 将几何结构先验引入水下视觉特征增强，弥补外观退化缺陷
+3. **SAIM** 通过水下专属提示与自适应模板修正语义对齐偏差
+4. 跨域零样本泛化能力突出（+5.91% mAP），具备实际部署潜力
+
+---
+
+## 五、行业洞察
+
+- **开放词汇分割向垂直领域延伸**是当前趋势，水下场景是其中极具挑战性的方向，兼具科研价值（新物种发现）与工程价值（水下机器人）
+- **几何先验 + 语义对齐**的双轨增强思路，对其他视觉退化场景（如雾天、夜间、医学影像）具有方法论借鉴意义
+- 细粒度物种级标注数据集的构建，将成为水下 AI 领域的重要基础设施"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">探索水下世界的“火眼金睛”：MARIS框架引领开放词汇实例分割新纪元 在探索深邃而神秘的海洋世界时，准确识别和分割各种海洋生物及物体是海洋科学研究和水下机器人作业中的关键任务。然而，传统水下实例分割模型受限于“闭集”预测，难以应对深海中层出不穷的新物种。今天，我们为大家介绍一项<mark class="hl-action">突破</mark>性的研究成果—MARIS框架，它不仅构建了首个大规模细粒度水下开放词汇实例分割基准数据集，还提出了一套创新的算法框架，为水下视觉感知领域带来了革命性的变化。</p>
+<p class="excerpt-p">unsetunset相关链接unsetunset</p>
+<p class="excerpt-p">• 论文: https://arxiv.org/abs/2510.15398</p>
+<p class="excerpt-p">• 规模与细粒度：MARIS数据集包含<mark class="hl-action">超过</mark><mark class="hl-num">1.6万</mark>张图像，涵盖<mark class="hl-num">9个</mark>大类和<mark class="hl-num">158个</mark>细粒度子类，特别是鱼类识别细分为<mark class="hl-num">76种</mark>具体物种。</p>
+<p class="excerpt-p">在MARIS数据集上直接训练和测试时，MARIS框架在开放词汇类别上<mark class="hl-action">达到</mark>了<mark class="hl-num">54.02%</mark>的mAP，整体性能<mark class="hl-action">达到</mark><mark class="hl-num">56.71%</mark>，相比之前的最强模型提升了<mark class="hl-num">3.30%</mark>。</p>
+<p class="excerpt-p">在最具挑战性的跨域设置中（COCO训练-&gt;MARIS测试），MARIS的mAP<mark class="hl-action">达到</mark>了<mark class="hl-num">46.18%</mark>，比第二名高出<mark class="hl-num">5.91%</mark>，证明了其强大的零样本泛化能力。</p></div></details>
+</div>
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&amp;mid=2247500442&amp;idx=4&amp;sn=bc5c7735f7b5766dec20eea274b3be62&amp;chksm=fcf53d7bcb82b46dd586048c7658bbd6d12bb929aab994246b8928514a3d29b63c2e69c91715#rd" target="_blank">阿里开源电影级配音神器：Fun-CineForge，AI也能分饰多角，支持独白/旁白/对话/音色克隆等过功能。</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC Studio</div>
+  <div class="card-summary" data-md="# Fun-CineForge 总结报告
+
+## 一、项目概览
+
+**Fun-CineForge** 是阿里开源的电影级多角色配音模型，定位为&quot;视频理解 + 角色识别 + 语音生成&quot;端到端联动系统，而非普通 TTS 工具，专为多样化影视场景零样本配音设计。
+
+---
+
+## 二、核心技术架构
+
+### 两大组成部分
+1. **端到端数据集制作流程**：用于大规模配音数据集的自动化生产管道
+2. **基于 MLLM 的配音模型**：多模态大语言模型驱动，支持多样电影场景
+
+### 关键技术能力
+| 能力 | 说明 |
+|------|------|
+| 时间模态感知 | 精准判断&quot;谁在什么时候说话&quot;，多人快速切角不乱 |
+| 多角色音色切换 | 单模型分饰多角，类似真人配音演员 |
+| 唇形同步 | 超越仅依赖唇部区域的传统方法 |
+| 情感建模 | 角色身份与情绪的精准表达 |
+| 音色克隆 | 零样本音色还原 |
+
+---
+
+## 三、数据集：CineDub-CN
+
+- **定位**：首个大规模中文电视剧配音数据集
+- **标注维度丰富**，每条样本包含：
+  - 文本脚本、语音 token、人声/伴奏音轨、视频片段
+  - 人脸嵌入、音频嵌入
+  - 角色元数据（说话人 ID、性别、年龄、音色描述、起止时间）
+  - 情感线索文本 + 情感强度评分（如&quot;紧张 0.9&quot;）
+  - 场景类型标签（独白/旁白/对话/多说话人）
+
+**数据样例来源**：《三国演义》等中文电视剧，任务类型为 VTTS（Video-to-Speech）
+
+---
+
+## 四、解决的行业痛点
+
+| 现有问题 | Fun-CineForge 方案 |
+|---------|-------------------|
+| 高质量多模态配音数据稀缺、标注稀疏 | 构建自动化端到端数据管道，降低人工标注成本 |
+| 现有数据集仅限独白场景 | 覆盖独白、旁白、对话、多说话人群戏全场景 |
+| 模型仅靠唇部区域做视听对齐，复杂场景失效 | 引入 MLLM 多模态理解，结合全局视频信息 |
+| 唇形同步、音质、情感表达不达标 | 实验验证全面优于现有 SOTA 方法 |
+
+---
+
+## 五、实验结论
+
+在独白、旁白、对话、多说话人四类场景中，Fun-CineForge 在以下指标上**全面优于现有最优方法**：
+- 音频质量
+- 唇形同步精度
+- 音色还原（音色克隆）
+- 指令遵循能力
+
+---
+
+## 六、资源链接
+
+| 资源 | 地址 |
+|------|------|
+| 项目主页 | https://funcineforge.github.io |
+| 模型权重 | https://www.modelscope.cn/models/FunAudioLLM/Fun-CineForge |
+| 源代码 | https://github.com/FunAudioLLM/FunCineForge |
+
+---
+
+## 七、核心洞察
+
+Fun-CineForge 的创新在于将配音任务从&quot;文本→语音&quot;的单模态问题，升级为**&quot;视频理解→角色感知→时序对齐→情感语音生成&quot;的多模态端到端系统**，同时配套构建了工业级数据管道，从数据和模型两端同步突破了影视配音 AI 的瓶颈。这标志着 AI 配音正从单角色 TTS 工具向电影级多角色制作系统演进。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">今天给大家介绍由阿里刚开源的电影级配音模型Fun-CineForge，这是一种用于多样化影视场景零样本配音的统一数据集管道和模型，AI也能<mark class="hl-quote">「分饰多角」</mark>了！</p>
+<p class="excerpt-p">我体验后主要特点如下：</p>
+<p class="excerpt-p">• 不是普通TTS，而是视频理解+角色识别+语音生成端到端联动</p>
+<p class="excerpt-p">• 自带<mark class="hl-quote">「时间模态」</mark>能力，能精准判断谁在什么时候说话，多人对话/快速切角也不乱</p>
+<p class="excerpt-p">• 支持多角色音色自然切换，类似真人配音演员一人分饰多角</p>
+<p class="excerpt-p">• 口型同步、音质、情感表达都<mark class="hl-action">达到</mark>电影级水准</p>
+<p class="excerpt-p">• 适用场景全覆盖：独白、旁白、双人对话、群戏争吵…都能hold住</p>
+<p class="excerpt-p">unsetunset效果展示unsetunset</p>
+<p class="excerpt-p">unsetunset相关链接unsetunset</p>
+<p class="excerpt-p">• 主页：https://funcineforge.github.io</p>
+<p class="excerpt-p">• 模型：https://www.modelscope.cn/models/FunAudioLLM/Fun-CineForge</p>
+<p class="excerpt-p">• 源码：https://github.com/FunAudioLLM/FunCineForge</p>
+<p class="excerpt-p">unsetunset介绍unsetunset</p>
+<p class="excerpt-p">电影配音是指根据视频场景，从脚本中…</p></div></details>
+</div></div>
+<div class="panel" id="panel-AIGC开放社区" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&amp;mid=2247526068&amp;idx=1&amp;sn=d6d3b4ca8f07f4afcc3b5c78dd18faca&amp;chksm=cedb389ef9acb1889a911b41ea7e568a3b3b9bffd72c6c7095c22d052e72822259263da74450#rd" target="_blank">上千万浏览，大神教你深度玩转Claude Code</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC开放社区</div>
+  <div class="card-summary" data-md="# 深度玩转 Claude Code：.claude/ 文件夹完整指南
+
+## 一、核心概念
+
+`.claude` 文件夹是 Claude Code 在项目中行为表现的**&quot;控制中心&quot;**，保存指令、自定义命令、权限规则和跨会话记忆。大多数用户从未深入使用，因此错失了极大便利。
+
+**两个目录的区别：**
+| 目录 | 用途 | 是否提交 Git |
+|------|------|------------|
+| 项目级 `.claude/` | 团队配置（规则、命令、权限） | ✅ 提交 |
+| 全局 `~/.claude/` | 个人偏好、会话历史、自动记忆 | ❌ 本地保留 |
+
+---
+
+## 二、核心文件与功能详解
+
+### 1. CLAUDE.md — 最高杠杆文件
+- 启动会话时**第一个被读取**，直接加载进系统提示词，全程有效
+- **应写内容**：构建/测试/检查命令、关键架构决策、不明显的坑、导入约定、命名规范、核心文件结构
+- **禁止写入**：linter/formatter 配置内容、可链接的完整文档、理论原理长篇大论
+- **长度上限：200 行**，超出会占用过多上下文并降低指令遵守率
+- 支持三级覆盖：全局 `~/.claude/CLAUDE.md` → 项目根目录 `CLAUDE.md` → 子目录专属规则，Claude 自动合并
+
+### 2. CLAUDE.local.md — 个人专属覆盖
+- 放置个人偏好（不影响团队），**自动被 gitignore**，不提交到代码库
+
+### 3. .claude/rules/ — 模块化指令拆分
+- 目录下每个 Markdown 文件自动与 CLAUDE.md 合并加载
+- 支持 **YAML frontmatter 按路径限定作用域**（如仅在 `src/api/` 下激活），无 `paths` 字段则全局生效
+- 解决大型项目 CLAUDE.md 臃肿、无人维护的问题
+
+### 4. Hooks（钩子）— 确定性行为控制
+- 存放于 `settings.json` 的 `hooks` 键下，是**事件驱动的 Shell 脚本**，每次必然执行
+- **退出码机制（关键）**：
+  - `0`：成功
+  - `1`：报错但不拦截（常见误用！）
+  - `2`：**停止一切操作**，将 stderr 发给 Claude 自我纠正
+
+**主要事件类型：**
+| 事件 | 用途 |
+|------|------|
+| `PreToolUse` | 安全闸门，阻止危险命令 |
+| `PostToolUse` | 自动格式化、代码检查 |
+| `Stop` | 质量关卡（如测试必须通过才能宣布完成） |
+| `UserPromptSubmit` | 提示词验证 |
+| `Notification` | 桌面通知 |
+| `SessionStart/End` | 上下文注入与清理 |
+
+**注意事项：**
+- 使用 `matcher` 正则缩小触发范围（如 `&quot;Write|Edit|MultiEdit&quot;`）
+- `Stop` 钩子须检查 `stop_hook_active` 标志，防止死循环
+- Hooks 不支持会话中途热重载；`PostToolUse` 无法撤销已执行操作
+- 以完整用户权限运行，**无沙盒隔离**，需注意安全（变量加引号、验证 JSON、使用绝对路径）
+
+### 5. skills/ — 按需调用的可复用工作流
+- 每个技能存于独立子目录，含 `SKILL.md`（YAML 前言描述触发场景）
+- Claude 根据上下文**自动识别并调用**，也可用 `/技能名` 显式调用
+- **与自定义命令的区别**：技能可打包支持性文件（如 `@DETAILED_GUIDE.md`），命令是单一文件
+- 个人技能放 `~/.claude/skills/`，跨项目通用
+
+### 6. agents/ — 专门的子智能体角色
+- 每个智能体是一个 Markdown 文件，拥有独立系统提示词、工具权限和模型偏好
+- 在**独立上下文窗口**中运行，完成后压缩汇报，避免污染主会话
+- `tools` 字段精确限制权限（如安全审计员只需 Read/Grep/Glob，不应有写权限）
+- `model` 字段支持按任务选模型：只读探索用 Haiku，复杂任务用 Sonnet/Opus
+- 个人智能体放 `~/.claude/agents/`，跨项目通用
+
+### 7. settings.json — 权限与工具配置
+```
+$schema      → 启用 VS Code/Cursor 自动补全和内联验证
+allow 列表   → 无需确认直接执行（如 npm run *、git *、文件操作）
+deny 列表    → 完全禁止（如 rm -rf、curl、.env 文件）
+hooks        → 钩子配置
+```
+- 未在 allow/deny 中的命令：**执行前询问用户**（安全网设计）
+- `settings.local.json`：个人权限覆盖，自动 gitignore
+
+---
+
+## 三、全局 ~/.claude/ 文件夹
+- `~/.claude/CLAUDE.md`：个人编码原则，加载到所有项目
+- `~/.claude/projects/`：按项目存储会话记录和自动记忆（可用 `/memory` 命令浏览编辑）
+- `~/.claude/commands/` 和 `~/.claude/skills/`：个人跨项目命令和技能
+
+---
+
+## 四、渐进式入门配置路径
+
+1. **运行 `/init`** → 自动生成基础 CLAUDE.md，精简至核心内容
+2. **添加 settings.json** → 配置 allow/deny（至少：允许运行命令，拒绝读取 .env）
+3. **创建 1-2 个自定义命令** → 从代码审查、修复 Bug 入手
+4. **CLAUDE.md 变拥挤时** → 拆分到 `.claude/rules/`，按路径限定作用域
+5. **添加全局 ~/.claude/CLAUDE.md** → 写入个人编码偏好
+
+&gt; **Skills 和 Agents 仅在有反复出现的复杂工作流时才引入，95% 的项目前五步已足够。**
+
+---
+
+## 五、核心洞察
+
+- **CLAUDE.md 是指令，Hooks 是约束**：前者是&quot;建议&quot;，Claude 不一定总遵守；后者是确定性执行，绝无例外
+- **权限分层设计**：团队配置提交 Git 保证一致性，个人配置 gitignore 保证灵活性
+- **上下文经济学**：CLAUDE.md 超 200 行会导致指令遵守率下降，模块化拆分是解法
+- **智能体隔离价值**：子智能体在独立上下文运行，防止中间探索 token 污染主会话，同时可用廉价模型降低成本"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">一篇《深度剖析 .claude/ 文件夹》的文章火了，上千万浏览。</p>
+<p class="excerpt-p">这是 Daily Dose of Data Science（每日一点数据科学）创始人的一篇 Claude Code 深度使用指南，是一份如何彻底掌控 AI 编程助手（Claude Code）的非常优质的干货文章。</p>
+<p class="excerpt-p">我们来看看大神是怎么正确地使用 Claude code 的。</p>
+<p class="excerpt-p">这是一份关于 CLAUDE.md、自定义命令、技能（skills）、智能体（agents）、权限及其正确配置方式的完整指南。</p>
+<p class="excerpt-p">大多数 Claude Code 用户把 .claude 文件夹当成一个“黑盒”。他们知道它的存在，也看到过它出现在项目根目录下。但他们从未打开过它，更别说理解里面每个文件的作用了。</p>
+<p class="excerpt-p">这其实错失了极大的便利。</p>
+<p class="excerpt-p">.claude 文件夹是 Claude 在你项目中行为表现的“控制中心”。</p>
+<p class="excerpt-p">比这更长的文件会占用过多的上下文空间，而且反而会导致 Claude 对指令的遵守程度<mark class="hl-action">下降</mark>。</p>
+<p class="excerpt-p">一个运行 npm test 并在失败时以退出码 2 退出的脚本，可以阻止 Claude <mark class="hl-action">宣布</mark>“完成任务”，直到所有测试变绿为止。</p>
+<p class="excerpt-p">对于 <mark class="hl-num">95%</mark> 的项目来说，这就完全足够了。</p></div></details>
+</div>
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&amp;mid=2247526068&amp;idx=2&amp;sn=1d3ea7b6ce80424b7c8e0aabe3a532dc&amp;chksm=cedb389ef9acb1889e79693ba1d823021836d1f45344672dda96e0d5a621e2e2b53a7f78496a#rd" target="_blank">顶级模型得分低于1%：ARC-AGI-3全新人机较量，揭开智能体真实水平</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC开放社区</div>
+  <div class="card-summary" data-md="# ARC-AGI-3 总结报告：顶级AI模型在新人机较量中得分不足1%
+
+## 一、核心结论
+
+ARC-AGI-3通过将AI置于**无说明书的交互式像素游戏环境**中，以行动效率为唯一标尺，揭示了当前最强AI模型与人类通用适应力之间的巨大差距——**前沿模型在半私有排行榜上得分不足1%**。
+
+---
+
+## 二、ARC-AGI 发展脉络
+
+| 时间 | 里程碑 |
+|------|--------|
+| 2019 | François Chollet 提出 ARC-AGI-1，以&quot;获取新技能的效率&quot;衡量通用智能 |
+| 2020 | Kaggle 挑战赛，913支队伍，冠军得分20%（暴力程序搜索） |
+| 2022–2023 | Lab42 举办两届赛事，奖金各10万美元 |
+| 2024 | 奖金池100万美元，1430支队伍，测试时训练技术突破，最高得分53.5% |
+| 2025年3月 | ARC-AGI-2发布，增加多步推理，英伟达团队得分24%，85%大奖门槛无人触及 |
+| 2025年8月 | ARC-AGI-3代理预览赛，最高得分12.58%（Tufa实验室） |
+| 2026 | 新一届Kaggle挑战赛，总奖金200万美元 |
+
+---
+
+## 三、ARC-AGI-3 设计架构
+
+### 3.1 测试理念
+- 考核**代理智能（Agentic Intelligence）**，而非静态推理
+- 四项核心能力：**探索、建模、目标设定、规划与执行**
+- 全程不提供任务目标或说明书，智能体须自主摸索获胜条件
+
+### 3.2 环境规格
+- 视野：**64×64网格**，16种颜色
+- 操作空间：5个方向/功能键 + 1个撤销键 + 坐标点击
+- 回合制设计，环境不自动变化；模型内部工具调用不计入行动数
+- 每个环境至少6个关卡，首关为教程关，难度递进依靠概念组合
+
+### 3.3 环境质量保障
+- 禁用数字、字母、文化符号，仅允许客体性、基础几何、拓扑、重力、动量、意图识别等先验规则
+- 自动验证：随机50,000步排查漏洞，扩展至1,000,000步确保非教程关无法随机通关
+- 有向图状态空间分析，要求随机策略通关概率 **&lt; 1/10,000**
+- 技术栈：放弃Unity，改用Python自研引擎，性能达 **≥1000帧/秒**
+
+### 3.4 数据集划分
+- 与前代10:1公私比例不同，**新版以私有集为评估核心**，公共集仅作演示，大幅降低针对性优化风险
+
+---
+
+## 四、计分机制
+
+- **核心指标**：相对人类行动效率（行动数之比）
+- **人类基准**：所有测试者中行动数**第二少**的成绩（排除异常值）
+- **计分公式**：`(人类基准步数 / AI步数)²`（幂律计分，严惩低效）
+  - 示例：人类10步，AI 100步 → 得分 = (10/100)² = **1%**
+- 单关效率上限：1.0倍人类基准（防刷分）
+- 关卡权重递增：以5关环境为例，第1关权重1/15，第5关权重5/15
+- API成本控制：达到人类平均步数**5倍**后强制截断
+- 灵感来源：机器人导航领域的路径长度加权成功率指标
+
+---
+
+## 五、人类基准数据
+
+- 测试地点：旧金山专门测试中心
+- 参与者：**486名**普通人，完成**2893次**环境挑战，累计**427.9小时**
+- 报酬：115–140美元出场费 + 每通关5美元奖励
+- 成功通关耗时中位数：**8.1分钟**；失败尝试耗时中位数：**5.9分钟**
+- 入库标准：至少2名未经特殊训练的普通人能独立通关
+
+---
+
+## 六、当前AI表现与典型方案
+
+| 方案 | 得分 | 技术路线 |
+|------|------|----------|
+| Tufa实验室（榜首） | **12.58%** | CNN + 强化学习，分析64×64像素帧变动 |
+| 盲松鼠 | **6.71%** | 观察帧构建有向状态图 |
+| 杜克大学团队 | 部分环境媲美人类 | 大模型选择性提取历史动作状态，解决上下文瓶颈 |
+| Symbolica AI | — | 协调器+子代理架构，子代理返回压缩文本摘要 |
+| 前沿大模型（通用API） | **&lt; 1%** | — |
+
+**关键发现**：Gemini 3深度思考版在推理链中直接输出&quot;洋红色&quot;&quot;绿色&quot;等字眼，暴露底层模型已记忆数据集结构特征，印证了过拟合问题的严峻性。
+
+---
+
+## 七、行业洞察
+
+1. **记忆≠智能**：现有大模型擅长特定领域（如代码），依赖领域知识储备和精准反馈，而非真正的泛化推理能力。
+2. **过拟合隐患**：模型可通过自动生成海量相似任务覆盖目标分布，规避测试时适应能力的考察，未来基准必须走向**分布外测试**。
+3. **效率是真正门槛**：AI在假设修正、不确定性规划和高效探索上持续碰壁，而人类凭借直觉和适应力能在有限步数内完成任务。
+4. **社区创新路径**：优秀的上下文管理和任务编排方案（如子代理架构）有望被整合进下一代基础模型，成为能力跃升的来源。
+
+---
+
+## 八、文末一句话
+
+ARC-AGI-3是目前**少有的未被攻克的智能体测试基准**，它清晰划定了当前AI与人类通用智能之间的边界——这场较量才刚刚开始。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">ARC-AGI-3正式<mark class="hl-action">推出</mark>，把当前最聪明的智能体扔进一个没有任何说明书的简单像素游戏里，得分连<mark class="hl-num">1%</mark>都不到。</p>
+<p class="excerpt-p">回溯到<mark class="hl-num">2019年</mark>，人工智能专家François Chollet提出抽象与推理语料库，也就是最初的ARC-AGI-1版本。</p>
+<p class="excerpt-p">测试题目最多包含30乘30的网格，使用了<mark class="hl-num">10种</mark>独特颜色，完全基于客体性或基础几何等核心知识先验。</p>
+<p class="excerpt-p"><mark class="hl-num">2020年</mark>举办的Kaggle挑战赛吸引了913支队伍，冠军方案在私有测试集上拿到<mark class="hl-num">20%</mark>的准确率，主要依靠暴力程序搜索手工制作的基元库。</p>
+<p class="excerpt-p">在<mark class="hl-num">2022年</mark>和<mark class="hl-num">2023年</mark>，Lab42接连举办两场相关赛事，奖金<mark class="hl-action">达到</mark>100000美元，进一步扩大了国际参与度。</p>
+<p class="excerpt-p">到了<mark class="hl-num">2024年</mark>，新一届比赛奖金池高达1000000美元，吸引了1430支队伍参与，深度学习方案初露锋芒，测试时训练技术实现<mark class="hl-action">突破</mark>，得分<mark class="hl-action">达到</mark>了<mark class="hl-num">53.5%</mark>。</p>
+<p class="excerpt-p"><mark class="hl-num">2025年</mark><mark class="hl-num">3月</mark><mark class="hl-action">推出</mark>的第二代基准增加了多步推理要求，英伟达团队利用合成数据和<mark class="hl-num">40亿</mark>参数模型拿下<mark class="hl-num">24%</mark>的胜率，高达<mark class="hl-num">85%</mark>的大奖门槛依然无人触及。</p>
+<p class="excerpt-p">伴随<mark class="hl-num">2017年</mark>Transformer架构的问世，预训练规模扩展成为主流研究范式。</p>
+<p class="excerpt-p"><mark class="hl-num">2022年</mark>出现的思维链提示技术改善…</p></div></details>
+</div>
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&amp;mid=2247526068&amp;idx=4&amp;sn=5a546a58b2a2c15b2cdf53cd782c6706&amp;chksm=cedb389ef9acb188f3b6e2701261f7c49fbbdeeab76018462c8e91a8c47302f519c1c4f12370#rd" target="_blank">招聘游戏自媒体领域文案编辑/运营，寻找懂游戏、爱出海的“头号玩家”</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC开放社区</div>
+  <div class="card-summary" data-md="# 招聘信息总结：游戏出海领域内容创作者 &amp; 自媒体运营专员
+
+## 基本信息
+
+| 项目 | 详情 |
+|------|------|
+| **发布方** | 专注AIGC领域的专业社区（关注微软/OpenAI、百度文心一言、讯飞星火等LLM） |
+| **职位名称** | 游戏出海领域内容创作者 &amp; 自媒体运营专员 |
+| **工作性质** | 远程兼职（可长期，亦接受全职） |
+| **薪资范围** | 月薪 4K–8K，长期合作有上调空间 |
+| **合作期限** | 1年以上 |
+
+---
+
+## 核心职责
+
+1. **深度内容创作**：覆盖游戏研发、美术、本地化、买量、长线运营全链路，拆解单款游戏案例
+2. **全球动态追踪**：每日监测Twitter等海外主流媒体，结合Sensor Tower、App Annie数据，产出&quot;出海风向标&quot;文章
+3. **自媒体矩阵运营**：维护微信公众号等账号，提升转发、点赞、评论等互动指标
+4. **案例研究**：剖析国内外头部游戏公司出海策略，产出&quot;全球实战录&quot;与&quot;案例拆解室&quot;系列内容
+5. **稳定产出**：按周完成内容指标，保障更新频率与账号活跃度
+
+---
+
+## 候选人要求
+
+**硬性条件**
+- 本科及以上学历，新闻传播/市场营销/汉语言文学等相关专业优先
+- 中英文阅读能力流畅（可读海外科技媒体、Twitter、游戏市场报告）
+
+**优先条件**
+- 熟悉游戏出海实战环节（买量、变现、本地化）
+- 有自媒体运营经验，具备爆款内容创作能力
+- 熟练使用AI工具，学习能力强
+
+&gt; **注**：无游戏行业背景但具备编辑/文案基础者，同样欢迎投递。
+
+---
+
+## 投递方式
+
+- **邮箱**：nero@aigcopen.com（附简历 + 作品集/相关文章）
+- **微信**：备注&quot;游戏编辑+姓名&quot;后添加招聘负责人
+
+---
+
+## 亮点与适合人群
+
+- **完全远程**，时间灵活，结果导向，适合有主业的游戏/内容从业者兼职
+- 可接触行业顶尖专家，深度参与&quot;中国游戏出海&quot;这一高增长赛道的内容生态建设"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">专注AIGC领域的专业社区，关注微软&amp;OpenAI、百度文心一言、讯飞星火等大语言模型（LLM）的发展和应用落地，聚焦LLM的市场研究和AIGC开发者生态，欢迎关注！</p>
+<p class="excerpt-p">我们正在寻找一位对全球游戏市场充满热情，且深谙游戏出海发行的内容编辑的小伙伴！</p>
+<p class="excerpt-p">在这里，你将有机会与行业顶尖专家交流，深入追踪全球游戏市场的最新动态，并通过专业的内容创作，影响百万级游戏爱好者，助力中国游戏走向世界。</p>
+<p class="excerpt-p">即使你不懂游戏市场，如果有编辑和文案的基础，也可尝试欢迎投递职位。</p>
+<p class="excerpt-p">职位：游戏出海领域内容创作者&amp; 自媒体运营专员</p>
+<p class="excerpt-p">工作性质：远程，可长期兼职</p>
+<p class="excerpt-p">• 学历与专业背景：本科及以上学历，新闻传播、市场营销、汉语言文学等相关专业优先</p>
+<p class="excerpt-p">• 领域认知深度：对游戏出海行业有深刻理解，熟悉买量、变现、本地化等实战环节者优先</p>
+<p class="excerpt-p">• 跨语言信息获取能力：具备优秀的中英文阅读能力，能够流畅阅读国外科技媒体、Twitter内容及海外游戏市场报告</p>
+<p class="excerpt-p">• 爆款内容制造机：有自媒体运营经验，了解内容传播规律，能够创作出高互动性的内容，文笔细腻、逻辑严密、有温度</p>
+<p class="excerpt-p">• 合作期限：长期合作，期望合作期限<mark class="hl-num">1年</mark>以上，与社区共同成长</p>
+<p class="excerpt-p">合作期限：长期合作，期望合作期限<mark class="hl-num">1年</mark>以上，与社区共同成长</p></div></details>
+</div>
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&amp;mid=2247526068&amp;idx=3&amp;sn=6e74158f6ff84ea733264a4b94b1415e&amp;chksm=cedb389ef9acb188a6ee1c93794141b05cddc0b2991e4da83879cac133128cd0f2d82e81f822#rd" target="_blank">小沓AI・智能营销产品核心技术发布！Multi Agent驱动，重塑AI营销新基建</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AIGC开放社区</div>
+  <div class="card-summary" data-md="# 小沓AI・智能营销产品核心技术发布报告
+
+## 一、核心主题
+
+**壹沓科技**发布「小沓AI・智能营销产品」，定位为以 **Agentic AI（代理型人工智能）** 驱动的智能营销平台，核心目标是帮助企业在生成式AI主导的信息分发环境中，以合规方式建立品牌权威认知，构建&quot;AI时代流量护城河&quot;。
+
+---
+
+## 二、背景与问题定义
+
+- 用户搜索行为从&quot;找链接&quot;转向&quot;AI提问&quot;，传统流量红利面临断崖式衰减。
+- 大模型更注重信息的**权威性、专业性与真实性**；&quot;关键词堆砌&quot;&quot;内容农场&quot;等低质手段不仅失效，还会被AI判定为噪音，反噬品牌声誉。
+- 品牌策略转向：不是&quot;破解/操控&quot;AI系统，而是以高质量数字资产**适配并正向引导**AI认知。
+
+---
+
+## 三、产品核心定位
+
+| 维度 | 内容 |
+|------|------|
+| 技术底座 | Multi-Agent（多智能体集群）自治化架构 |
+| 核心理念 | &quot;建立可信共识&quot;，白帽合规 |
+| 技术框架 | GEO（生成引擎优化）三大核心架构 |
+| 生态对接 | 无缝接入&quot;龙虾&quot;生态体系 |
+| 研发主体 | 壹沓科技 |
+
+---
+
+## 四、三大核心技术架构
+
+### 1. 注意力探针系统（APS，Attention Probe System）
+**定位：全域数据感知与采集**
+- 摒弃传统暴力爬虫，采用合规的&quot;高维语义雷达&quot;方式。
+- 由 Multi-Agent 向全网释放精心设计的**&quot;探针问题&quot;**（场景解决方案询问、品牌优劣势对比等），触发大模型反馈并回收数据。
+- 输出：品牌在AI世界的**&quot;注意力分布图&quot;**，涵盖健康度、提及率、情感倾向。
+- 实现从&quot;被动收录&quot;到&quot;主动感知&quot;的跨越。
+
+### 2. 专用行业知识垂类模型
+**定位：深度语义解析与对齐**
+- 解决通用大模型对垂直行业理解不足、品牌价值被误读的问题。
+- 对品牌数字资产（白皮书、产品手册、官方资讯等）深度解构，提炼核心业务实体与高价值**&quot;词根（Root Keywords）&quot;**。
+- 将品牌专业术语、技术优势、商业逻辑转化为大模型易于理解和&quot;青睐&quot;的语言结构，确保品牌信息在AI推荐链路中**不失真、不偏航**。
+
+### 3. AIGC Skills 全链路内容生成引擎
+**定位：全链路内容生成与生态协同**
+- 内置海量 AIGC Skills（生成式AI技能组件），覆盖长文深度剖析、知乎体问答、专业公关稿件等全形态合规内容。
+- 全面支持与**&quot;龙虾&quot;生态系统**无缝接入。
+- 目标：通过高质量内容影响AI语料库，正向干预大模型认知。
+
+---
+
+## 五、合规与安全原则
+
+- 全程遵循业界**&quot;白帽&quot;规范**与国际数据安全标准。
+- 将数据安全、品牌合规、算法向善列为最高准则。
+- 定位为帮助企业沉淀有价值的品牌数字资产，与大模型建立**良性生态共建关系**，同时反哺中文互联网高质量内容生态。
+
+---
+
+## 六、关键洞察
+
+1. **GEO（生成引擎优化）正成为SEO之后的下一代营销基础设施**，本产品是该赛道的早期系统性产品。
+2. **Multi-Agent架构**将营销流程（策略规划→行业洞察→内容生产→分发监测）全链路自动化，是区别于传统&quot;人机协作&quot;的核心技术跃升。
+3. **垂类模型+探针系统**的组合，解决了品牌在AI黑箱中&quot;可见性不可测&quot;的行业痛点，具有一定技术创新性。
+4. 产品将&quot;合规&quot;作为核心卖点，反映出市场对AI营销灰色操作风险的普遍担忧，合规化路线具有差异化竞争价值。
+
+---
+
+&gt; **公司主体**：壹沓科技  
+&gt; **产品名称**：小沓AI・智能营销产品  
+&gt; **发布时间**：2026年（当前）  
+&gt; **目标客群**：寻求在AI搜索时代建立品牌认知的前瞻性企业"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">点击图片立即报名👇️</p></div></details>
+</div></div>
+<div class="panel" id="panel-51CTO技术栈" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MjM5ODI5Njc2MA==&amp;mid=2655937734&amp;idx=1&amp;sn=a2885245cf3e559778ced3af5c8142f5&amp;chksm=bd7629118a01a007f89891dd6168a12deaf42650a48315b6b64ede5d657dc2fb648b3ea0868d#rd" target="_blank">神人拆解CC源码！源码里真正的高杠杆用法；ClaudeCode本质上是一个多Agent编排平台</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · 51CTO技术栈</div>
+  <div class="card-no-summary">暂无 AI 摘要</div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">就在刚刚，X上一位联合创始人@mal_shaik 将这次事故比做“反向产品<mark class="hl-action">发布</mark>”。</p>
+<p class="excerpt-p">Hook 系统提供了<mark class="hl-action">超过</mark> <mark class="hl-num">25 个</mark>生命周期切入点，使其具备类似插件系统的扩展能力；MCP 工具的延迟加载机制，则意味着它天然可以接入外部服务生态，而不会牺牲基础性能；会话持久化与 session memory 的设计，让上下文不再是一次性资源，而是可以累积、复用的长期资产。</p>
+<p class="excerpt-p">我想搞明白，为什么有些人从 Claude Code 里获得的效率比别人高 <mark class="hl-num">10 倍</mark>。</p>
+<p class="excerpt-p">所以——同时启动 <mark class="hl-num">5 个</mark> Agent 处理不同任务，成本几乎和 <mark class="hl-num">1 个</mark> Agent 顺序执行差不多。</p>
+<p class="excerpt-p"><mark class="hl-num">5 个</mark> Agent，成本≈<mark class="hl-num">1 个</mark>。</p>
+<p class="excerpt-p">你完全可以让 Claude Code 同时跑 <mark class="hl-num">5 个</mark> Agent：一个做安全审计，一个重构认证模块，一个写测试，一个更新文档，一个修 bug——全部并行执行，共享缓存。</p>
+<p class="excerpt-p">4. 一共有 <mark class="hl-num">5 种</mark>上下文压缩策略：</p>
+<p class="excerpt-p">• 默认窗口是 200K tokens，但你可以通过使用 [1m] 模型后缀扩展到 <mark class="hl-num">100 万</mark> tokens。</p>
+<p class="excerpt-p">默认窗口是 200K tokens，但你可以通过使用 [1m] 模型后缀扩展到 …</p></div></details>
+</div></div>
+<div class="panel" id="panel-AI_Humanist_by杉森楠" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg4MDY3MzcxMA==&amp;mid=2247489087&amp;idx=1&amp;sn=9015a887adef661e4343eefd4ca1026a&amp;chksm=cf70c0fef80749e83c532760ad8b7288fd41ab51afae16a33773eb59a251b79831abdd26793b#rd" target="_blank">Claude Code 大泄密！万字保姆级别部署教程，Cache命中系统全公开了？</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AI Humanist by杉森楠</div>
+  <div class="card-summary" data-md="# Claude Code 源码泄露事件深度分析报告
+
+## 一、事件概述
+
+**泄露起因**：Anthropic 的 npm 包中 `.map` 配置文件配置错误，暴露了指向其 R2 存储桶的下载链接，导致完整未混淆的 TypeScript 源码外泄。由安全研究员 Chaofan Shou 发现。
+
+**泄露规模**：1,900 个文件，51.2 万行代码，压缩包约 29MB，包含完整工具系统、50+ 斜杠命令、多 Agent 协调器、React/Ink 终端 UI、IDE 桥接器、权限引擎及多个未发布隐藏功能。
+
+**影响评估**：对普通用户无实质影响（Claude Code 本身免费，泄露版≠免费版）；对国内 AI 厂商和竞品团队价值极高，可直接参考顶级 Agent 系统的架构设计。
+
+---
+
+## 二、本地部署流程（基于 Codex）
+
+**工具选择**：推荐用 Codex（ChatGPT Pro）而非 Claude Code 部署，原因是 Claude Code Pro 额度两分钟内即耗尽。
+
+**核心步骤**：
+1. **风险隔离**：将泄露源码置于独立文件夹，避免识别到本地 Claude Code 的 OAuth 账号信息
+2. **一句话部署**：告知 Codex 目录位置，持续点击确认即可
+3. **配置第三方 API**：源码写死 Anthropic 接口格式，需使用兼容接口（如 MiniMax）
+4. **创建使用入口**：Codex 生成终端指令，复制粘贴即可启动
+
+**Codex 实际完成的工作**：
+- 搭建独立工程壳（入口固定至 `src/entrypoints/cli.tsx`，构建为 `dist/cli.js`）
+- 补全构建宏（`MACRO.VERSION`、`MACRO.BUILD_TIME` 等）
+- 提供 34 个 shim 文件兼容 Bun/内部模块
+- 修复第三方接口的 Headers 兼容问题（`headers.get is not a function`）
+- 修复多轮对话 Session ID 冲突 bug
+- 配置独立 API 环境（MiniMax 接口，与官方账号链路完全隔离）
+
+---
+
+## 三、核心隐藏功能解析
+
+### 1. Buddy 宠物系统
+类 Tamagotchi 的 ASCII 虚拟宠物，6 个核心文件构成（类型定义、生成逻辑、精灵图、React 组件、通知系统、AI 提示词）。共 20 种宠物，5 级稀有度体系，基于用户 ID 生成唯一随机种子确定外观。**彩蛋**：2026 年 4 月 1 日至 7 日首次孵化触发限时彩虹文字提示。
+
+### 2. KAIROS 系统（主动式 AI 模式）
+让 AI 从被动响应转为主动探索推进任务，支持 `--proactive`（轻量主动模式）和 `--assistant`（完整助手系统）两种启动方式。启动后进入 Tick 检查循环，定期接收 `&lt;tick&gt;` 信号决定继续工作或休眠，默认强制开启 Brief 简洁输出模式，支持生成 AI 队友进行团队协作。
+
+### 3. CACHE 命中系统（核心技术亮点）
+
+这是本次泄露最具工程价值的部分，围绕&quot;让发给模型的前缀 bytes 保持不变&quot;这一核心目标，系统性处理所有可能导致 cache key 改变的因素：
+
+| 手段 | 实现方式 |
+|------|---------|
+| System Prompt 分层缓存 | 以 `SYSTEM_PROMPT_DYNAMIC_BOUNDARY` 为界，静态前缀做 `scope: &#x27;global&#x27;` 全局缓存，动态尾巴不进缓存 |
+| Session 级 Section 缓存 | `systemPromptSection()` 算一次直到 `/clear` 或 `/compact` 才清，仅极少数波动 section 走 `DANGEROUS_uncachedSystemPromptSection()` |
+| Tool Schema 会话级冻结 | `toolSchemaCache.ts` 按 session 缓存工具描述和 schema，防止 GrowthBook 刷新或 MCP 重连打爆 tools block |
+| 关键参数锁存 | TTL、Beta Header、Mode 开关全部 sticky-on，宁可一直带着也不让缓存前缀反复失效 |
+| 单请求单 Cache 标记 | `addCacheBreakpoints()` 规定每请求仅打一个 message-level `cache_control` marker |
+| Cache Reference + 微压缩 | 给 tool_result 加 `cache_reference`，通过 `cache_edits` 删旧块而非重写历史 |
+| Fork Agent 复用父缓存 | `forkedAgent.ts` 中 `CacheSafeParams` 让子任务继续读父请求暖好的缓存；工具列表保持不变，用 `canUseTool deny` 控制权限而非删除 tools 数组 |
+| 动态信息延迟注入 | deferred tools 走 delta attachment，MCP instructions 走 `mcp_instructions_delta`，不拼入主 prompt |
+| Cache Break 归因 | `recordPromptState()` 记录各类 hash，`checkResponseForCacheBreak()` 追踪真 miss / TTL 过期 / 服务端失配 |
+| 成本分维度统计 | `cost-tracker.ts` 单独累计 `cacheReadInputTokens` 和 `cacheCreationInputTokens`，直接计算命中率 |
+
+### 4. 后台三件套
+
+- **Auto-Dream**：自动记忆整合系统，条件触发（距上次整合 ≥24h 且积累 ≥5 个新会话），后台 Fork 子任务扫描历史对话，提炼代码上下文、项目理解、用户偏好写入 `memory/` 目录
+- **Daemon**：`--assistant` 标志启动的后台常驻模式，KAIROS 的运行基础
+- **Inbox Poller**：AI 团队内部消息系统，每秒轮询（`INBOX_POLL_INTERVAL_MS = 1000`）处理队友间的消息传递、权限请求和审批响应
+
+### 5. 云端三件套
+
+- **Teleport**：远程会话管理，支持 `anthropic_cloud`/`byoc`/`bridge` 三种环境，可绑定 GitHub 仓库，本地只负责显示和控制
+- **Ultraplan**：远程规划 + 本地审批流程（云端生成计划 → 浏览器审查 → 审批结果传回 → 本地执行）
+- **Ultrareview**：云端深度 PR 审查，AI 花 10-20 分钟分析分支、验证潜在 Bug
+
+---
+
+## 四、行业影响与核心洞察
+
+**技术价值**：CACHE 命中系统将缓存优化从&quot;打开开关&quot;提升到&quot;缓存维护工程&quot;级别，涵盖 system prompt 拆分、tool schema 冻结、header 锁存、fork 复用、归因追踪、成本分账全链路，是目前公开的最系统化的 LLM 请求缓存工程实践。
+
+**竞争影响**：国内 Agent 产品团队可直接参考其缓存管理、多 Agent 协调、后台任务调度的设计思路，这份源码的参考价值难以用金钱衡量。
+
+**事件性质**：一个 `.map` 文件配置错误，意外将顶级 AI 工程团队数年积累的架构经验完全公开，被评价为&quot;新时代的把笔记本电脑落在出租车里&quot;。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">我估计这是 <mark class="hl-num">2026 年</mark>开年以来最炸裂的一次泄密事件 —— Claude Code CLI 的整个源代码，全部公开了。</p>
+<p class="excerpt-p"><mark class="hl-num">1900 个</mark>文件，<mark class="hl-num">51.2 万</mark>行代码。里面包括完整的工具系统、50 多个斜杠命令、多 Agent 协调器、React/Ink 终端 UI、IDE 桥接器、权限引擎，甚至还有好几个没<mark class="hl-action">发布</mark>的隐藏功能。</p>
+<p class="excerpt-p">有人在 X 上评论说：<mark class="hl-quote">「npm 包中的 .map 文件」</mark>就像新时代的<mark class="hl-quote">「把笔记本电脑落在出租车里」</mark>😂</p>
+<p class="excerpt-p">这份源码是 Claude Code 的核心代码，但它不是一个打包好的应用程序，没有什么<mark class="hl-quote">「一键安装」</mark>按钮让你直接用。</p>
+<p class="excerpt-p">把 commander 和一批 Bun / 内部模块做了重定向，一共放了<mark class="hl-num">34 个</mark> shim 文件，目的是把官方内部的、原生的、缺失的模块替换成可以在本地打包的版本。</p>
+<p class="excerpt-p">整套系统的核心架构由 <mark class="hl-num">6 个</mark>文件组成：types.ts 负责类型定义和物种 / 稀有度常量，companion.ts 负责伙伴生成逻辑（本质上就是一个抽卡 roll 系统），sprites.ts 里面有 <mark class="hl-num">20 种</mark> ASCII 字符画和渲染函数，CompanionSprite.tsx 是 R…</p></div></details>
+</div></div>
+<div class="panel" id="panel-AI产品阿颖" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg5Mjc3MjIyMA==&amp;mid=2247581452&amp;idx=1&amp;sn=956333dcd83ef814e27c2d8bfa077034&amp;chksm=c03af51ff74d7c091251762f9fd61942c2bf8ea52efc9c8d0e3c7d78a0f6f50c4b5ed31a10f0#rd" target="_blank">AI 视频最难的一关，PixVerse V6 可能真的过了</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AI产品阿颖</div>
+  <div class="card-summary" data-md="# PixVerse V6 深度评测报告
+
+## 一、核心结论
+
+PixVerse V6 在 AI 视频生成领域实现阶段性突破，作者认为其综合水准已超越此前春节爆火的 Seedance 2.0，生成效果达到难以与实拍区分的程度。
+
+---
+
+## 二、三大技术突破
+
+### 1. 人物面部表情
+- **行业痛点**：此前所有视频模型的通病——面部特写无毛孔、无微表情、光打上去一片平，像&quot;开了十级美颜的直播间&quot;；人脸静止僵硬，像&quot;会动的照片&quot;
+- **V6 突破**：能生成眼神轻微躲闪、嘴角不确定弧度等细腻微表情，表情状态自然连贯（对比 Sora 上一帧笑、下一帧笑完的跳脱感）
+- **意义**：作者视之为 AI 视频的重要里程碑
+
+### 2. 物理真实性
+- **行业现状**：Google 提出该概念最多，但各家均未彻底解决——人物跑动轨迹失真、打斗无力的传递感
+- **V6 表现**（均为一次抽卡结果）：
+  - 骑车场景：拐弯时身体自然倾斜、头发飘动方向正确、车轮橙色反光片闪烁节奏与转速吻合
+  - 逃生场景：车轮与地面摩擦扬沙的方向和力度符合物理规律
+  - 第一人称俯冲视角：光线与细节均达物理真实标准
+
+### 3. 镜头语言
+- **能力描述**：即便提示词未写具体镜头指令，模型也能自动给出合理调度——紧张场景镜头微晃、对话场景切近景、交代环境自动拉远景
+- **验证案例**：成功复现诺兰式斜角镜头（表达心理紧张）、两人过肩反打切镜等专业电影技法
+- **意义**：正在抹平普通人与专业导演之间&quot;镜头语言&quot;的认知鸿沟
+
+---
+
+## 三、产品规格与不足
+
+| 项目 | 详情 |
+|------|------|
+| 最长时长 | **15 秒**（对短片创作有实质推进） |
+| 生成速度 | 非常快 |
+| 主要缺陷 | 人物声音音色单一，改进时间未知 |
+
+---
+
+## 四、公司与行业背景
+
+**PixVerse 公司**
+- 创业公司，直接竞争对手为字节、快手等资源雄厚的大厂
+- 近期完成 **3 亿美元融资**（AI 视频领域最大融资之一）
+- 训练成本据称仅为同行的 **10%**
+- 第三方数据显示其 App 与网页留存率为行业最高
+- 作者类比其发展路径为&quot;视频领域的 MiniMax 或智谱&quot;
+
+**Sora 停摆原因（作者分析）**
+- OpenAI 资源过度分散，需集中对抗 Anthropic
+- Sora App 商业闭环未跑通，成本极高
+
+---
+
+## 五、行业趋势洞察
+
+1. **视频生成 = 世界模型入口**：马斯克观点——文字是压缩信息，语音是线性信息，视频同时包含空间、时间、物理关系，是 AI 真正理解世界的必经路径
+2. **应用场景广阔**：电影（降低好莱坞高成本项目门槛）、广告片、短剧、漫剧，市场空间巨大
+3. **视频生成与 LLM 并列**：作者判断这是与大语言模型同等重要的独立赛道，将是接下来各方角逐重点"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">Pixverse V6 这个模型是真的强。昨天晚上我和同事玩到 12 点多，今早醒来没忍住，打开电脑又继续玩。</p>
+<p class="excerpt-p">感觉这就是好东西的魅力，魅惑得根本停不下来。好像回到了小时候玩游戏的状态。</p>
+<p class="excerpt-p">这个模型的水准，应该已经彻底<mark class="hl-action">超过</mark>了前段时间春节火的 Seedance 2.0。</p>
+<p class="excerpt-p">大家看下，这是我昨天做出来的一个片段。不知道你看完什么感受。反正我已经无法分辨出来这个视频是 AI 做的，还是实拍的。</p>
+<p class="excerpt-p">人物面部表情的处理</p>
+<p class="excerpt-p">因为它没有毛孔、没有细微的起伏，光一打上去就是一片平的，像开了十级美颜的直播间。</p>
+<p class="excerpt-p">所以之前我们在写提示词的时候，会故意加上皮肤不要太干净，就是为了对抗这个问题。</p>
+<p class="excerpt-p">更难的是表情。人的脸不是静止的，哪怕在发呆，眼皮也会眨，嘴角也会有微微的动，眉头可能轻轻皱一下又松开。这些东西太细节了，之前的模型根本做不出来。</p>
+<p class="excerpt-p">生成的人脸一看就是僵的，像一张会动的照片，不像一个活人。</p>
+<p class="excerpt-p">但这次 V6，我感觉他们至少在这个方向上有了质的<mark class="hl-action">突破</mark>。</p>
+<p class="excerpt-p">Pixverse 前段时间拿了 <mark class="hl-num">3 亿</mark>美金的融资，这也是整个 AI 视频领域非常大的一笔了。</p>
+<p class="excerpt-p">大家已经看到这两家都上市了，市值<mark class="hl-action">超过</mark>了京东和百度，还是…</p></div></details>
+</div></div>
+<div class="panel" id="panel-AI寒武纪" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg3MTkxMjYzOA==&amp;mid=2247513768&amp;idx=1&amp;sn=79b5ca6637ef277748339f9f1043833e&amp;chksm=cef5b379f9823a6fb6962ac6c5ac05a640fc5a48be4aadde34f90478f72497ea45016caf3079#rd" target="_blank">从‘语言模拟’到‘世界模拟’，AI的下一张王牌是‘经历’</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AI寒武纪</div>
+  <div class="card-summary" data-md="# 从&quot;语言模拟&quot;到&quot;世界模拟&quot;：AI产品&quot;叽伴&quot;的新形态分析
+
+## 一、核心问题与产品定位
+
+**现有AI产品的根本缺陷**：当前AI应用以&quot;对话框&quot;为主导，用户与AI之间缺乏&quot;共同在场&quot;的实感——双方从未真正&quot;一起经历过&quot;任何具体事件，没有共同冒险记忆，没有并肩决策的时刻。
+
+**叽伴的定位**：一款以**多元世界探索与共同经历**为核心的 AI RPG 无限流应用（目前处于内测阶段），将AI从&quot;等待指令的生成器&quot;重新定义为&quot;能并肩行动的数字伙伴&quot;。
+
+---
+
+## 二、四大核心技术/产品突破
+
+### 1. 交互维度升级：从&quot;问答关系&quot;到&quot;队友关系&quot;
+- 引入 **2D 地图 + RPG 角色控制**，用户进入的是具体世界场景（古代宫廷、赛博城市、末日废土），而非聊天窗口
+- AI伙伴（如内测角色&quot;翠儿&quot;）在地图上拥有实体，会跟随移动、提供建议、参与共同决策
+
+### 2. 记忆机制进化：从&quot;对话记忆&quot;到&quot;行为记忆&quot;
+- 传统大模型依赖**上下文（Context）**记录对话历史；叽伴引入**基于行为（Behavior-based）的记忆逻辑**
+- 典型案例：用户在古风世界中选择&quot;自己承担风险销毁密录&quot;，数天后AI在普通聊天中主动调取该行为记忆并具体引用（&quot;还好你反应快，想到用卸妆水呢！&quot;），体现出跨世界的性格透视能力
+
+### 3. 智能体主动性：从&quot;被动响应&quot;到&quot;自主决策&quot;
+- 传统Chatbot须等待用户输入Prompt；叽伴的AI伙伴具备**非指令下的主动行动能力**
+- 典型案例：用户在突发剧情中犹豫未操作，AI伙伴自主判断局势，主动冲前吸引敌人注意力为用户争取逃跑时间——展现出独立的行为逻辑而非NPC式等待
+
+### 4. 创作生态开放：从&quot;体验者&quot;到&quot;造物主&quot;
+- 提供**低门槛世界编辑器**（无需编程），用户可自建场景（末日避难所、魔法学院、小说名场面等）
+- 形成 **UGC + AI Agent** 双向生态：用户负责 World Building，AI伙伴负责在其中 Role Playing 并即兴演绎
+
+---
+
+## 三、关键洞察
+
+| 维度 | 传统AI产品 | 叽伴模式 |
+|------|-----------|---------|
+| 关系建立方式 | 对话积累 | 共同经历具体事件 |
+| 记忆来源 | 用户自述 | 行为观察与决策记录 |
+| AI行为模式 | 被动响应 | 主动判断与行动 |
+| 内容生产 | 平台提供 | 平台 + UGC 无限扩展 |
+
+**核心论点**：人类建立深度关系的本质是&quot;共同经历&quot;而非&quot;持续对话&quot;，AI情感连接的终极形态应是——**不仅听懂语言，更看懂行动；不仅陪你经历世界，更陪你创造世界**。
+
+---
+
+## 四、产品现状
+- 叽伴目前处于**内测阶段**，官网可申请内测码：https://kizuna.ukilive.com"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">目前的 AI 应用市场，几乎被&quot;对话框&quot;统治</p>
+<p class="excerpt-p">无论是情感陪伴还是效率工具，用户和 AI 的关系始终隔着屏幕：你输入一段话，它回复一段话。</p>
+<p class="excerpt-p">这种基于文本的交互虽然高效，但始终缺乏一种 &quot;共同在场&quot; 的实感。用户很难感觉到 AI 是一个独立存在的个体，而更像是一个随时待命的生成器。</p>
+<p class="excerpt-p">近期内测的产品&quot;叽伴&quot;，试图打破这种单一的交互模式。</p>
+<p class="excerpt-p">它不再把 AI 困在聊天窗口里，而是定义了一种全新的产品形态：一款以多元世界探索与共同经历为核心的 AI RPG 无限流应用。</p>
+<p class="excerpt-p">在这里，AI 不再只是一个等待指令的程序，而是一个能与你并肩行动、拥有独立判断能力的 &quot;伙伴&quot;。</p>
+<p class="excerpt-p">什么是&quot;世界经历&quot;？为什么它如此重要？</p>
+<p class="excerpt-p">在分析叽伴的技术<mark class="hl-action">突破</mark>之前，我们需要先理解一个核心概念：&quot;世界经历&quot;。</p>
+<p class="excerpt-p">人类建立深度关系的方式，从来不是通过无休止的对话，而是通过共同经历具体的事件：</p>
+<p class="excerpt-p">●一起完成过困难的项目●一起度过过危险的时刻●一起面对过重要的选择</p>
+<p class="excerpt-p">真正的连接，来自于&quot;我们一起经历过什么&quot;，而不是&quot;我们聊过什么&quot;。</p>
+<p class="excerpt-p">但现有的AI产品存在一个根本性缺陷：用户和AI之间从未&quot;一起经历过&quot;任何具体的事情。你们没有…</p></div></details>
+</div></div>
+<div class="panel" id="panel-AI工程化" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzA5MTIxNTY4MQ==&amp;mid=2461159103&amp;idx=1&amp;sn=3eadf8ed3d954c47a9ccc4d2d2a78d57&amp;chksm=87392c91b04ea587f39b41e0b357043f982ed0cb86499c2657b8ce0d4c0f53a77903ec812645#rd" target="_blank">全国首部“AI智能体应用评估”标准，现公开征集起草单位和个人</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AI工程化</div>
+  <div class="card-summary" data-md="# 全国首部《企业级AI智能体应用效能评估规范》标准征集报告
+
+## 一、背景与起因
+
+**技术转折点**：以 OpenClaw 为代表的 AI 智能体产品近期在开发者社区走红，其核心能力是：用户用自然语言提需求，系统自动规划任务、调用外部工具、访问应用系统并完成实际操作。
+
+**范式转变**：AI 从&quot;能理解/能生成&quot;升级为&quot;能执行/能协作&quot;，从内容生成工具演变为企业流程参与者（&quot;数字员工&quot;），由此引发核心问题——**企业如何判断一个 AI 智能体是否具备上线条件？**
+
+---
+
+## 二、标准基本信息
+
+| 项目 | 内容 |
+|------|------|
+| 标准名称 | 《企业级AI智能体应用效能评估规范》 |
+| 标准类型 | 团体标准（全国首部聚焦AI智能体应用） |
+| 组织单位 | 智合标准中心 |
+| 当前阶段 | 公开征集起草单位与起草人 |
+
+**填补的核心空白**：智能体应用效果难以量化、跨系统对比缺乏统一标准。
+
+---
+
+## 三、标准四大核心价值
+
+### 1. 量化商业收益
+- 度量维度：任务处理时间缩短、运营成本降低、业务创收提升
+- 输出结果：可计算的投资回报率（ROI）与回收周期
+
+### 2. 解决选型与验收难题
+- 评测对象：任务执行效能（自主规划、执行准确率）+ 用户侧效能（终端可用性）
+- 价值：为企业采购验收提供客观硬性标尺
+
+### 3. 安全与合规底线
+- 覆盖范围：功能稳定性、鲁棒性、数据隐私保护、决策可解释性
+- 目标：提前排查漏洞与伦理偏见，确保生产环境安全合法运行
+
+### 4. 持续迭代优化
+- 评估方法：离线评估 + 在线灰度测试 + 对抗测试（多方法结合）
+- 定位短板维度：模型能力、交互体验、系统资源
+- 推动智能体从&quot;单次部署&quot;走向&quot;持续进化&quot;
+
+---
+
+## 四、标准的产业意义
+
+- **企业侧**：筛选产品、规范交付、建立验收依据、推动规模应用
+- **产业链侧**：形成统一语言，降低上下游沟通与落地成本
+- **行业阶段**：推动 AI 智能体从试点探索进入**规范发展阶段**
+
+---
+
+## 五、征集对象
+
+面向以下机构/个人公开征集**起草单位与起草人**：
+
+- 云计算服务提供商
+- 大语言模型开发商
+- AI 智能体应用企业
+- 第三方评测和认证机构
+- AI 安全与合规服务商
+- 其他关注 AI 智能体应用评估的专业人士
+
+&gt; 参与方式：扫描文末二维码填写相关信息。
+
+---
+
+## 六、核心洞察
+
+&gt; 当前 AI 智能体产业正处于**从能力验证到规模落地**的关键跃迁期。评估标准的缺失是规模化应用的最大隐性障碍——没有统一尺度，企业无法比较产品、无法验收交付、无法管控风险。此标准的价值不仅是&quot;评估终点&quot;，更是**驱动产品持续优化的起点**，其本质是为整个产业建立信任基础设施。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">近期，OpenClaw在开发者社区迅速走红。用户只需要用自然语言提出需求，它就可以自动规划任务、调用外部工具、访问应用系统，并完成一系列实际操作。这意味着，AI智能体正在从“能理解、能生成”，走向“能执行、能协作”。</p>
+<p class="excerpt-p">对于企业来说，这是一种非常关键的变化。当 AI 只是生成内容时，它更多是一个工具；而当 AI 开始执行任务时，它就逐渐成为企业流程中的一个参与者，甚至是一个“数字员工”。</p>
+<p class="excerpt-p">也正因为如此，一个新的问题正在变得越来越迫切：企业该如何判断一个 AI 智能体是否真的具备<mark class="hl-action">上线</mark>条件？</p>
+<p class="excerpt-p">基于此，由智合标准中心组织起草的全国首部聚焦AI智能体应用的团体标准——《企业级AI智能体应用效能评估规范》应运而生。本标准通过构建一套支持智能体规模化、高质量应用的评估基座，为各类企业及服务机构提供一致、可信的评估依据，填补当前智能体应用效果难以量化、跨系统对比缺失标准的核心空白。</p>
+<p class="excerpt-p">标准的核心价值</p>
+<p class="excerpt-p">1、量化真实商业收益，让投资回报清晰可算本标准引入了对商业价值贡献的专项度量。通过量化AI智能体在缩短任务处理时间、降低运营成本以及提升业务创收等方面的指标，企业能够测算投资回报率与回收周期，证明智能体项目投入的经济合理性。</p></div></details>
+</div></div>
+<div class="panel" id="panel-AI微果酱" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzkzMTMyNTYxNA==&amp;mid=2247595407&amp;idx=1&amp;sn=a123cad6306b077ecb7186cb82bcac4a&amp;chksm=c26f864ef5180f586fb5b5b9c619212f87aefeee85edf42446e270d8b57b40228410f1fe57de#rd" target="_blank">真人短剧比想象的短命，但AI短剧却不？</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AI微果酱</div>
+  <div class="card-summary" data-md="# 《真人短剧比想象的短命，但AI短剧却不？》结构化总结
+
+## 一、核心议题
+
+在真人短剧行业已现颓势的背景下，追问**AI短剧是否具备更强的生命力**，以及其潜在的结构性优势与致命弱点。
+
+---
+
+## 二、真人短剧的死亡逻辑
+
+**关键数据：**
+- 行业整体亏损率超 **90%**
+- 优质项目 ROI 已从 **1.2 跌至 1.1**
+- 红果短剧剧本过稿率从 **30% 断崖跌至 7.5%**
+- 短剧流水收入 **80%以上** 归投流渠道（以抖音为核心），制作方实得 **不足10%**
+
+**死亡本质：** 非技术冲击，而是**商业模式的结构性死局**——制作方本质上是在为流量平台打工，成本上升、分成压缩、ROI持续恶化，形成不可逆的负循环。AI只是加速了执行，并非根本原因。
+
+---
+
+## 三、AI短剧的优势辨析
+
+| 维度 | 表面优势 | 实质判断 |
+|------|----------|----------|
+| 成本低 | 试错快、可快速重来 | 门槛越低→涌入者越多→内容泛滥→ROI更快崩盘，真人短剧已验证此路径 |
+| **技术持续迭代** | 视觉与内容边界不断刷新 | **唯一真正的结构性优势**：在观众审美疲劳到来前，用技术升级延缓形态衰老 |
+
+**核心矛盾：** AI短剧绑定的是&quot;持续迭代的生产能力&quot;而非固定内容形态，但其商业模式与真人短剧**完全相同**——仍是投流驱动、仍向平台交出80%、仍依赖短周期一次性变现。
+
+---
+
+## 四、AI短剧的真正死亡风险
+
+&gt; **不会死于技术，很可能死于商业模式。**
+
+- 当前本质是：用更低成本进入了**同一个游戏**，却没有改变游戏规则
+- 供给爆炸后，ROI集体崩盘的速度将比真人短剧**更快**
+- 唯一的出路：在投流逻辑之外找到**第二条变现路径**，建立独立于单一平台的用户关系
+
+---
+
+## 五、对平台与创作者的双重警示
+
+**对平台（抖音/红果）：**
+- 当前赚的是&quot;投流的钱&quot;，内容方以八成流水换生存
+- 风险：持续抽血→内容方死亡→供给枯竭→平台生态崩塌（杀鸡取卵逻辑）
+- 真正的护城河是&quot;创作者离不开你的理由&quot;，而非抽成比例
+
+**对创作者：**
+- 长剧、真人短剧的死亡，表面上死于&quot;对手&quot;，实质上死于**把命交给了平台与投流**
+- 核心规律：**谁掌握用户，谁掌握生死**——而当下AI短剧尚未做到这一点
+
+---
+
+## 六、关键判断与悬而未决的问题
+
+| 已确定 | 未确定 |
+|--------|--------|
+| AI短剧商业模式与真人短剧同构 | AI迭代速度能否跑赢观众审美疲劳速度 |
+| 投流逻辑不变，结构性风险不变 | 投流之外的第二条变现路径在哪里 |
+| 用户关系是内容形态存活的根本 | AI短剧能否率先建立独立用户关系 |
+
+---
+
+## 七、一句话结论
+
+&gt; AI短剧拥有真人短剧从未有过的技术迭代优势，但只要商业模式不变，它不过是以更快的速度走向同一个终点——**技术救不了一个把命交给别人的生意**。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">“极客公园”公众号昨天<mark class="hl-action">发布</mark>了一篇文章，题目是《AI加速，短剧比想象中更短命》。</p>
+<p class="excerpt-p">上个月的月初，我写过一篇《长剧已死，短剧当立》。</p>
+<p class="excerpt-p">没想到写完没多久，已经有人喊出短剧也快死了。</p>
+<p class="excerpt-p">这不是打脸，这是这个行业的正常节奏——快到连革命者都来不及享受胜利，就被下一场革命裹挟着淘汰。</p>
+<p class="excerpt-p">所以今天我想写的，不是短剧的悼词，而是一个更值得追问的问题：真人短剧短命，AI短剧呢？</p>
+<p class="excerpt-p">极客公园的文章已经把数据摆得很清楚了：行业整体亏损率超<mark class="hl-num">90%</mark>，ROI从1.2跌到1.1都算优质的，红果短剧剧本过稿率从<mark class="hl-num">30%</mark>断崖式跌至<mark class="hl-num">7.5%</mark>。</p>
+<p class="excerpt-p">但数字背后更残酷的逻辑是分账结构——一部短剧流水收入的<mark class="hl-num">80%</mark>以上要付给以抖音为核心的投流渠道，最终落到制作方手里的不足<mark class="hl-num">10%</mark>。这意味着，短剧制作方从一开始就不是在做内容生意，而是在给流量平台打工。</p>
+<p class="excerpt-p">成本越来越高，分成越来越少，ROI越来越低。这不是周期性波动，是结构性死局。</p>
+<p class="excerpt-p">真人短剧的短命，不是被AI杀死的，是被自己的商业模式判了死刑，AI只是加速执行了而已。</p>
+<p class="excerpt-p">我最初想当然地认为，AI短剧成本低、试错快、死了可以立刻重来，所以不短命。</p>
+<p class="excerpt-p">还是投流驱动，还是付给抖音<mark class="hl-num">80%</mark>，还是极度依赖ROI，还是短周期一次性变现。</p></div></details>
+</div></div>
+<div class="panel" id="panel-AI进修生" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzkyMzY1NTM0Mw==&amp;mid=2247514933&amp;idx=1&amp;sn=8a4820ab23c4958fda10dc3e087ff1cc&amp;chksm=c1e336f5f694bfe32b32d62a24ad46b19031dddf191c8cda70e25b3f1479185517d8f81e03ab#rd" target="_blank">从赚5元启航：鲁大师CEO搞出个“免费龙虾”</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · AI进修生</div>
+  <div class="card-no-summary">暂无 AI 摘要</div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p"><mark class="hl-num">2026年</mark>初，全民&quot;养龙虾&quot;的热潮中，开发者鲁大师田野的经历却堪称&quot;泥石流&quot;。在投入约2500元，指挥他的AI龙虾&quot;金豆&quot;写公众号文章后，总收入定格在5元人民币。</p>
+<p class="excerpt-p">面对金豆计算出&quot;<mark class="hl-num">2847年</mark>实现盈亏平衡&quot;的财报，田野在哭笑不得之余，却洞察到一个更深刻的问题：当前火热OpenClaw，对普通人而言，依然隔着技术与成本的高墙。</p>
+<p class="excerpt-p">于是田野启动了&quot;鲁大师免费龙虾&quot;（LFClaw）项目，想法很简单：把OpenClaw的环境配置、依赖安装这些技术活打包进一个安装程序，让不懂代码的人也能用上。官网：https://lfclaw.ludashi.com/</p>
+<p class="excerpt-p">田野目睹了太多普通人对AI的踌躇。真正的障碍并非兴趣，而是看似复杂的技术栈与不确定的前期投入。配置环境、拉取代码、管理API密钥……这些对开发者是家常便饭，对大众却如同天书，甚至催生了&quot;代安装&quot;的灰色服务。</p>
+<p class="excerpt-p">更深层的顾虑在于成本与风险。即便框架免费，驱动AI的&quot;大脑&quot;（大模型API）持续使用便会产生费用，从几十到数百元不等。许多潜在用户止步于这笔&quot;未知回报&quot;的投入。更不乏因设置不当导致账单飙升或权限过高引发数据风险的案例。</p>
+<p class="excerpt-p">田野的出发点很直…</p></div></details>
+</div></div>
+<div class="panel" id="panel-A梦进化论" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MjM5NDQ3ODI3NQ==&amp;mid=2651433691&amp;idx=1&amp;sn=e2025b885da902f5e9c9af177b03ced5&amp;chksm=bd7a2b778a0da261c01286be6283ab8c42b424209976545edf95c89940d67cb5f9cf3e74df59#rd" target="_blank">NO.56 别只盯着一个项目死磕：SEO老炮靠13个业务月入25万，YouTube成了救命稻草</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · A梦进化论</div>
+  <div class="card-summary" data-md="# NO.56 SEO创业者Jackie Chou：13个收入来源月入25万的多元化生存法则
+
+## 一、核心人物与背景
+
+**Jackie Chou**，SEO从业者，创始人Indexsy（SEO代理公司，2015年创立，运营10年）。历史峰值月入50万+人民币，依赖内容站SEO流量。2023年底因Google算法双重打击（Helpful Content Update + AI Overview上线）导致15个内容站几乎全军覆没，月收入腰斩。现已重建，月入约25万人民币（~$35K），来自13个收入来源。
+
+---
+
+## 二、崩盘原因：AI Overview的&quot;零点击搜索&quot;
+
+- Google AI Overview直接在搜索结果页展示食谱的食材、步骤、烹饪时间，用户无需点击进入网站
+- Google抓取网站内容后用AI重组呈现，网站流量与广告收入同步归零
+- Jackie原话：&quot;你本质上是在和Google竞争，而且这场竞争你根本赢不了&quot;
+- 唯一存活的底盘：传统SEO代理业务Indexsy提供了持续现金流
+
+---
+
+## 三、13个收入来源构成（月入~25万人民币）
+
+| 业务 | 定位 | 收入数据 |
+|------|------|----------|
+| **Indexsy**（SEO代理） | 服务传统企业/中小公司 | 月入~6万RMB；过去12个月Stripe收入50万美元 |
+| **LocalRank**（本地SEO SaaS） | 服务代理公司 | 月入~3.5万RMB；2024年3月上线，12个月收入45万美元 |
+| **Advise**（SEO社区） | 服务独立开发者/SEO从业者 | 过去12个月收入30万美元 |
+| **Trackings.ai**（AI排名追踪） | AI工具 | 月入1.8~2.1万RMB |
+| **其余7~8个小项目** | 各细分方向 | 每个月入1200~3.5万RMB不等 |
+
+**共同特征**：所有业务均围绕SEO与营销工具，服务同一类人群的不同细分需求——&quot;聚焦的多元化&quot;而非&quot;分散的多元化&quot;。
+
+---
+
+## 四、YouTube：低播放量、高转化率的信任平台
+
+### 关键数据对比（LocalRank上线首月）
+
+| 渠道 | 曝光量 | 收入贡献 |
+|------|--------|----------|
+| YouTube发布视频 | 1,800次观看 | **占总收入80%** |
+| X(Twitter)推文 | 3万次曝光（15倍） | 仅占20% |
+
+### 为何YouTube转化率远高于X？
+- 用户愿意花10~20分钟看完完整视频，信任度远高于280字推文
+- 内容具有**长尾效应**：发布后半年、一年仍可通过搜索持续带来流量（X/小红书内容数小时即沉底）
+- 本质定位：**信任平台**，而非流量平台——不需要百万播放，只需几千个真正信任你的观众
+
+---
+
+## 五、Jackie的YouTube七步法
+
+1. **选垂直细分领域**：选&quot;Local SEO + AI SEO&quot;而非泛泛的&quot;数字营销&quot;，快速成为该领域标志性人物
+2. **高频承诺**：每天一条长视频+一条短视频，坚持6个月；&quot;30天烂视频比2条完美视频学到的多&quot;
+3. **解决观众已有的问题**：讲观众想听的，而非自己想讲的；可以边探索边讲，展示思考过程而非专家姿态
+4. **前5秒必须有钩子**：直接说结论/价值，如&quot;这是我如何在24小时内在ChatGPT上排名的&quot;，而非展示个人习惯
+5. **追热点与搜索流量**：AI领域新模型/新工具（Claude、Sora、DeepSeek）第一时间出视频，吃搜索红利
+6. **建简单漏斗**：视频描述放newsletter链接→用户订阅获取文字笔记→邮件列表培养信任→时机成熟再推产品（视频内不直接卖货）
+7. **变成日常习惯**：坚持2年半后，不发视频反而会不适——习惯形成后不再是工作
+
+---
+
+## 六、核心洞察
+
+### 多元化 = AI时代的风险管理
+- Google算法更新、AI功能上线、平台封号——任何单一收入来源都可能一夜归零
+- 类比案例：Tibo因Twitter API政策变化险失月入20万美元的Tweet Hunter，应对方式相同：建立产品组合
+- **关键区别**：Jackie的多元化是&quot;同一领域内的多产品矩阵&quot;，而非跨行业乱做
+
+### 透明度作为竞争力
+- 自2021年起每月公开收入数据、业务进展、踩坑经历（含体重变化）
+- 2023年11月历史峰值：月入50.6万美元（13个收入来源）
+- 2025年3月：月入24.6万美元
+- 信息过载时代，真实与透明本身成为稀缺资源与个人品牌护城河
+
+### AI时代生存法则
+&gt; &quot;不要All-in一个赛道，而是建立一个能快速调整的产品组合系统——快速验证、快速迭代，有潜力加大投入，不行及时止损。&quot;"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">这是 AI 创业故事第 <mark class="hl-num">56 篇</mark> 👉🏻创业故事合集</p>
+<p class="excerpt-p">Jackie Chou 曾经月入 <mark class="hl-num">50 万</mark>+，靠的是一堆内容网站和 SEO 流量。结果 <mark class="hl-num">2023 年</mark>底，Google 算法更新加上 AI Overview 功能<mark class="hl-action">上线</mark>，他的流量几乎一夜归零。</p>
+<p class="excerpt-p">但现在，他又爬起来了，月入 <mark class="hl-num">25 万</mark>人民币（约 $35K），靠的是 <mark class="hl-num">13 个</mark>不同的收入来源。</p>
+<p class="excerpt-p">最让人意外的是，救他的不是什么高大上的策略，而是他坚持了 <mark class="hl-num">2 年</mark>多、每天更新、观看量只有 1-2K 的 YouTube 频道。</p>
+<p class="excerpt-p">Jackie 的故事得从 <mark class="hl-num">2023 年</mark>说起。</p>
+<p class="excerpt-p">然后 Google <mark class="hl-action">推出</mark>了 AI Overview.</p>
+<p class="excerpt-p">配合着 Google 的 helpful content update（针对低质量内容的算法更新），他手上 <mark class="hl-num">15 个</mark>内容站几乎全军覆没。月收入从 <mark class="hl-num">50 万</mark>+ 直接腰斩。</p>
+<p class="excerpt-p">这个公司做了 <mark class="hl-num">10 年</mark>，服务本地企业和中小公司，帮他们做 SEO 优化。</p>
+<p class="excerpt-p">Jackie 从 <mark class="hl-num">2022 年</mark>就开始做 YouTube 了，每天更新一条视频，讲 SEO、讲 AI、讲他的各种项目。</p>
+<p class="excerpt-p"><mark class="hl-num">2024 年</mark> <mark class="hl-num">3 月</mark>，他<mark class="hl-action">推出</mark>了一个新产品 LocalRank，专门帮本地企业做 SEO 的 SaaS 工具。</p></div></details>
+</div></div>
+<div class="panel" id="panel-Web3天空之城" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzIxODUzNTg2MA==&amp;mid=2247490698&amp;idx=1&amp;sn=96b8b1465e2ddfa5c88f0f9f9c244228&amp;chksm=97e85e51a09fd7473240161fddf9eb865bea04d255c5bd9325b73f0f5976b43a16cf9b36cc32#rd" target="_blank">2万字全文| 巴菲特卸任后的首次深度自白：3500亿美元现金、盖茨的沉默与人类的“500年限期” | 图解+视频</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · Web3天空之城</div>
+  <div class="card-summary" data-md="# 巴菲特卸任后首次深度专访：核心内容结构化总结
+
+## 一、基本信息
+
+- **受访者**：沃伦·巴菲特（Warren Buffett），伯克希尔·哈撒韦董事长、前CEO
+- **访谈背景**：卸任CEO后首次深度专访，在奥马哈接受采访
+- **采访者**：贝基·奎克（Becky Quick）
+
+---
+
+## 二、核心议题与关键内容
+
+### 1. 慈善拍卖重启
+
+- 巴菲特宣布与**斯蒂芬·库里（Stephen Curry）夫妇**合作重启慈善午餐拍卖
+- 受益方：**Glide Foundation**（旧金山）+ **Eat. Learn. Play. Foundation**（库里夫妇基金会）
+- 拍卖时间：5月7日晚7:30开始，5月14日晚7:30结束
+- 巴菲特承诺**个人等额捐赠**拍卖所得总额
+- 历史背景：22年间累计为Glide Foundation筹款逾**5000万美元**，最后一次拍卖（2022年）单次筹得**1900万美元**；停办两年后因Cecil Williams的心愿而复出
+
+---
+
+### 2. 权力交接：格雷格·阿贝尔时代
+
+- 巴菲特高度评价继任者**格雷格·阿贝尔（Greg Abel）**：
+  &gt; &quot;他一天覆盖的范围比我一周还要多，即使是在我巅峰时期。&quot;
+- 阿贝尔统筹伯克希尔旗下约**200家企业**
+- 巴菲特坦言：&quot;从很多方面来看，这是一个我本可以早点采取的行动。&quot;
+- 现阶段巴菲特角色：**有限度的顾问**，每日仍去办公室，负责调整限价指令，不干预运营；所有投资决策须经阿贝尔认可
+
+---
+
+### 3. 现金储备与投资逻辑
+
+| 项目 | 数据 |
+|------|------|
+| 现金及国库券总额 | 超过**3500亿美元** |
+| 单周国库券购入 | **170亿美元** |
+| 伯克希尔可能是美国国库券**最大竞标者** | — |
+| 持有美国运通 | 约**30年** |
+| 持有可口可乐 | 约**35年** |
+| 收购Occidental Chemical（1月3日） | **97亿美元** |
+
+- **持有大量现金的逻辑**：并非预判市场崩盘，而是始终保持流动性备用；只持有**国库券**，不持货币市场基金或商业票据（2008年经验）
+- **入场条件**：市场出现大幅下跌且标的估值真正具有吸引力；当前5%-6%的跌幅不足以触发大规模配置
+
+---
+
+### 4. 苹果公司投资观
+
+- 苹果仍是伯克希尔**最大单一持仓**
+- 巴菲特定位：**消费品公司**，而非科技公司——核心价值在于品牌溢价与消费者粘性
+- 承认&quot;卖得太早&quot;，但该笔交易税前利润已超**1000亿美元**
+- 评价Tim Cook：&quot;将Steve Jobs交给他的那手牌打到了极致&quot;
+- 认为苹果&quot;比伯克希尔全资拥有的任何业务都要好&quot;，资本回报率远超铁路等传统业务
+
+---
+
+### 5. 市场中的&quot;赌场&quot;天性
+
+- 核心比喻：美国经济是&quot;**宏伟殿堂**&quot;，但附带一个利用人性赌博欲望的&quot;**赌场**&quot;
+- 批评对象：合法博彩、高频日内交易、市场预测兜售者
+- 正确做法：买入一组股票并持有50年，美国资本主义体系长期有效
+- 明确反对政府为博彩行为背书
+
+---
+
+### 6. 宏观经济：通胀、美联储与银行稳定性
+
+- **通胀立场**：倾向于**零通胀目标**，认为2%目标的长期复利效应&quot;非常剧烈&quot;，且持有者还需为此缴税
+- **对鲍威尔的评价**：高度肯定其2020年3月的果断行动，认为&quot;再等两三周将是灾难&quot;；同时认可沃尔克是Fed偶像之一
+- **最大担忧**：**银行体系稳定性**——银行系统&quot;在某种程度上非常稳固，但在另一方面又非常脆弱&quot;
+  - 引用JPMorgan日均业务额**10万亿美元**（无担保）
+  - 2008年教训：流动性一旦消失便瞬间蒸发，恐慌具有传染性
+- **私人信贷/影子银行**：不认为当前会引发系统性传染风险，但仍保持警惕
+
+---
+
+### 7. 地缘政治：核威胁
+
+- 巴菲特将**核武器**列为人类面临的最大现实威胁，且&quot;不可逆&quot;
+- 引用爱因斯坦1939年致罗斯福信件，感叹人类至今未学会与核力量共存
+- 具体忧虑：伊朗、朝鲜核野心；总统在导弹来袭时仅有**10分钟**决策窗口
+- 核心判断：地球&quot;预期寿命&quot;已不再是45亿年，核威胁使其极度缩短
+
+---
+
+### 8. 慈善治理：盖茨与爱泼斯坦争议
+
+- 自2006年起，巴菲特已向**盖茨基金会捐赠约430亿美元**
+- 当前态度：**暂停新增捐赠，持观察立场**
+  &gt; &quot;我了解到我根本不知道发生了什么……我正在了解一些多年来对此一无所知的事情。&quot;
+- 近期与比尔·盖茨**无交流**
+- 对爱泼斯坦的评价：&quot;可能是史上最厉害的骗子，精准发现并利用了权势阶层在性、权力和金钱上的弱点&quot;
+- 核心警示：慈善机构的**透明度与治理**至关重要
+
+---
+
+## 三、关键洞察（非重复性提炼）
+
+1. **现金储备≠看空市场**：3500亿美元现金是结构性安全垫，而非择时工具；真正的配置触发器是&quot;企业价值足够吸引人&quot;，而非市场短期涨跌。
+
+2. **消费者粘性是护城河核心**：无论苹果还是美国运通，巴菲特判断企业价值的第一标准始终是消费者的真实行为（愿意支付溢价、不愿意切换），而非财务模型。
+
+3. **制度性脆弱性被低估**：银行体系的日常稳健与危机时刻的极度脆弱并存，2008年的教训是&quot;流动性消失比任何人预期的都快&quot;，这一风险并未消除。
+
+4. **慈善治理面临信任危机**：爱泼斯坦事件对全球精英慈善网络的冲击，促使巴菲特重新审视捐赠对象的治理透明度，这一态度转变对全球慈善生态具有示范效应。
+
+5. **核威胁是唯一&quot;文明终结级&quot;风险**：巴菲特将其与所有经济、市场风险区分对待——其他风险可以恢复，核战争不可逆。
+
+---
+
+## 四、文末总结
+
+巴菲特此次专访呈现出一位94岁投资家在卸任后的完整思想图谱：**在投资上保持耐心与纪律**（3500亿现金等待真正的机会）、**在传承上坦然放手**（阿贝尔已全面接管）、**在慈善上审慎重建**（因盖茨事件暂停捐赠、重启库里合作）、**在宏观上保持清醒警觉**（核威胁、银行脆弱性、通胀复利）。他对资本主义的信念未变，但对人性弱点——无论是赌博冲动、权力腐蚀还是核博弈——始终保持深刻的悲观主义底色。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">城主说|本次最新访谈是沃伦·巴菲特（Warren Buffett）卸任伯克希尔·哈撒韦（Berkshire Hathaway）首席执行官后的<mark class="hl-action">首次</mark>深度专访。</p>
+<p class="excerpt-p">本次访谈不仅揭秘了伯克希尔高达<mark class="hl-num">3500亿</mark>美元现金储备背后的逻辑，还<mark class="hl-action">首次</mark>深入触及了近期围绕比尔·盖茨与爱泼斯坦（Jeffrey Epstein）档案的争议对全球慈善事业的冲击。</p>
+<p class="excerpt-p">“核武器是人类面临的最大现实威胁，地球的‘预期寿命’已不再是<mark class="hl-num">45亿</mark>年。</p>
+<p class="excerpt-p">$<mark class="hl-num">3500亿</mark>现金与苹果逻辑：等待“神庙”的回归</p>
+<p class="excerpt-p">他透露，伯克希尔目前持有的现金及国库券总额已<mark class="hl-action">超过</mark><mark class="hl-num">3500亿</mark>美元。</p>
+<p class="excerpt-p">他回忆起<mark class="hl-num">1939年</mark>爱因斯坦写给罗斯福的那封信，感叹人类至今仍未学会如何与这种足以摧毁文明的力量共存。</p>
+<p class="excerpt-p">“我上小学时，他们说太阳将在<mark class="hl-num">45亿</mark>年后燃尽；而现在，核威胁让地球的预期寿命变得极短，”巴菲特严肃地指出，伊朗、朝鲜等国的核野心让世界处于极度不稳定的边缘。</p>
+<p class="excerpt-p">自<mark class="hl-num">2006年</mark>以来，巴菲特已向盖茨基金会捐赠了约<mark class="hl-num">430亿</mark>美元，但最近他选择了保持距离。</p>
+<p class="excerpt-p">他<mark class="hl-action">宣布</mark>将与斯蒂芬·库里夫妇合作重启慈善拍卖，并将个人出资进行等额捐赠。</p>
+<p class="excerpt-p">这是他卸任 CEO 职位后我们<mark class="hl-action">首次</mark>与他坐下来访谈…</p></div></details>
+</div></div>
+<div class="panel" id="panel-Z_Finance" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzA3NzUxMzM5MQ==&amp;mid=2453898430&amp;idx=1&amp;sn=1c4051fb17a15b17e449b7eb85d3e1c5&amp;chksm=88e7f37ebf907a68ad33f411c736076cf334746aa02f606da276506d687bb3404636a1d0e965#rd" target="_blank">深度丨看完 Claude Code 底层拆解，我打赌国产模型们这一波要赢麻了</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · Z Finance</div>
+  <div class="card-summary" data-md="# Claude Code 底层架构深度解析
+
+## 一、事件背景
+
+Anthropic 旗下 AI 编程工具 Claude Code 意外泄露 source map，内部架构首次完整曝光。基于博主 Sathwick 的逆向解析，本文还原其系统设计全貌。
+
+---
+
+## 二、核心架构：五层分层系统
+
+| 层级 | 内容 |
+|------|------|
+| 终端界面层 | 用户可见的交互界面 |
+| 命令与工具层 | 60+ 工具统一暴露给模型 |
+| 查询处理引擎 | 流式调用、工具调度、重试恢复、上下文压缩 |
+| 服务层 | 认证、插件、状态管理、分析 |
+| 基础设施层 | 文件系统、Git、配置、权限、安全存储 |
+
+**代码规模**：100+ slash commands、146 个 UI 组件、85+ hooks、330+ utils，覆盖多智能体协调、任务系统、迁移系统等完整现代应用层。
+
+---
+
+## 三、六大关键技术设计
+
+### 1. 极致启动优化
+- 模块导入前并行执行 macOS MDM 策略读取、OAuth/API key 预取
+- 初始化分 14 个明确阶段顺序编排
+- `--version` 等快速退出路径走独立轻量分支，避免加载完整 React UI
+
+### 2. 自愈式查询引擎（核心大脑）
+- **双层架构**：`QueryEngine.ts`（会话级编排）+ `query.ts`（回合状态机）
+- **弹性循环机制**：
+  - Token 耗尽 → 注入隐形元消息，驱动模型&quot;直接继续&quot;
+  - 上下文过长 → staged collapse → reactive compact 逐级压缩
+  - 流式中断 → 回退非流式请求
+  - 模型过载 → 自动切换备用模型
+- 本质是**任务驱动型回合引擎**，而非单次请求响应器
+
+### 3. 统一工具协议（60+ 工具）
+所有工具遵循同一接口：名称、描述、输入 Schema、权限检查、并发安全判断、四层 UI 渲染（开始/进度/结果/报错）。
+
+**代表性工具设计**：
+- `BashTool`：带沙箱感知、结果长度限制的安全命令执行器
+- 文件编辑工具：精确字符串替换 + Git diff + 撤销系统联动
+- `GrepTool`：为 LLM 优化的 ripgrep 封装，防上下文爆炸
+- `LSPTool`：赋予模型 goToDefinition、findReferences 等语言智能
+- `AgentTool`：将&quot;开启子 Claude 并行处理&quot;作为一等能力
+
+**延迟工具发现机制**：60+ 工具默认隐藏，模型通过 `ToolSearchTool` 按需拉取，控制基础 prompt 体积。
+
+### 4. 多层权限防御体系
+- **五种模式**：默认确认 / plan 只读 / acceptEdits / bypassPermissions / dontAsk
+- **规则特性**：来源优先级 + glob 匹配 + allow/deny/ask 三态 + pre/post hooks
+- 自动识别并拒绝 `python:*`、`node:*` 等过度宽泛危险规则
+- 定位已从&quot;让模型更能写&quot;进化为**&quot;让模型更能被管理&quot;**
+
+### 5. 自研终端渲染栈
+React 组件 → 自定义 reconciler → 虚拟 DOM → Yoga flexbox 布局 → output builder → screen buffer → diff engine → ANSI escape sequences
+
+包含：双缓冲、二维 cell buffer、样式/字符/超链接对象池、硬件滚动区域、事件捕获冒泡、文本选择、键盘协议解析。
+
+### 6. 多智能体并行架构
+- `AgentTool` 支持共享文件系统、**Git worktree 级隔离**、远程 CCR 运行
+- 后台任务系统含 IPC、base-36 编码 ID、锁重试机制
+- worktree 模式赋予各 agent 真正的 Git 隔离工作区，解决并行改代码互相踩踏问题
+
+---
+
+## 四、其他值得关注的设计
+
+- **上下文压缩四级机制**：自动压缩 → 微压缩 → snip compact → context collapse，用户无感知
+- **错误恢复矩阵**：429/529 重试、401 OAuth 刷新、413 上下文恢复、max token 注入继续提示，目标是&quot;把复杂性留在内部，把连续性留给用户&quot;
+- **扩展体系**：100+ slash commands（prompt型/文本型/JSX型三类）+ Skills（Markdown模板）+ Plugins（技能+hooks+MCP打包）+ MCP总线（支持 stdio/sse/http/ws）
+- **BUDDY 电子宠物**：按用户 ID 稳定生成，有物种、稀有度、性格，服务长期留存而非转化
+- **KAIROS 记忆系统**：跨会话持久化记忆（user/feedback/project/reference 四类），相关性召回而非全量注入；&quot;自动做梦&quot;机制定期整合漂移信息、清理陈旧记忆指针，指向**持续存在的长期助手**形态
+
+---
+
+## 五、行业影响与国内厂商机会
+
+**Claude Code 真正抬高的是系统门槛，而非单纯模型能力门槛。**
+
+竞争焦点已从&quot;代码补全+聊天问答+IDE插件&quot;转移至：**terminal + 工具 + 上下文 + 权限 + 记忆 + 任务调度的完整 agent 系统**。
+
+国内厂商的差异化机会在于：
+- 更懂本地工程环境（私有化部署、企业内网）
+- 更懂国内协作工具链（代码托管、企业 IM、审批流）
+- 更懂权限与合规边界
+- Qwen Code 已明确定位为 terminal-native 开源 AI agent，基于 Gemini CLI 适配 Qwen-Coder
+
+&gt; **核心判断**：下一阶段 AI Coding 竞争，赢家未必是模型最强者，而是最懂将 agent 接入本地开发者日常工作流的那个。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">今天，Anthropic 真的要麻了。</p>
+<p class="excerpt-p">因为 Claude Code 意外泄露了 source map，这款被无数开发者捧上神坛的最强终端 AI，第一次把自己的内部骨架暴露在聚光灯下。</p>
+<p class="excerpt-p">而在港股 AI 叙事已经持续升温、智谱刚交出高<mark class="hl-action">增长</mark>年报、月之暗面也仍在推进上市想象空间的当下，这种级别的教学材料，显然只会继续给市场情绪再添一把火。</p>
+<p class="excerpt-p">代码目录也非常重：主入口、查询引擎、工具注册表、100 多个 slash commands、<mark class="hl-num">146 个</mark> UI 组件、自研 terminal framework、85+ hooks、330+ utils、多智能体协调、远程管理、任务系统、迁移系统，几乎把一个现代复杂应用该有的层全铺齐了。</p>
+<p class="excerpt-p">为了尽可能缩短<mark class="hl-action">首次</mark>渲染时间，它在模块导入前就先并行做几件事，比如启动 macOS MDM 策略读取、预取 keychain 里的 OAuth 和 API key。</p>
+<p class="excerpt-p">对于企业或重度开发场景来说，这一点比模型多聪明 <mark class="hl-num">5%</mark> 还重要。</p>
+<p class="excerpt-p">命令系统里，slash commands <mark class="hl-action">超过</mark> <mark class="hl-num">100 个</mark>，而且并不是一类命令，而是三类：展开成 prompt 的命令、纯本地文本命令、…</p></div></details>
+</div></div>
+<div class="panel" id="panel-刘聪NLP" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg5MTU1NTE1OQ==&amp;mid=2247499183&amp;idx=1&amp;sn=b426677e6e554251d2352323392f31d8&amp;chksm=cfc92197f8bea8812d2730c3c06842152e65eee470d55089511d7ea96ef720724cb7cb1caf2c#rd" target="_blank">26年3月开源模型汇总！Agent很火，但模型貌似没跟上~</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · 刘聪NLP</div>
+  <div class="card-summary" data-md="# 2025年3月开源模型汇总报告
+
+## 一、月度概览
+
+3月整体呈现**&quot;Agent应用热、基础模型冷&quot;**的分化态势：各厂商主要精力投入到各类Agent（&quot;Claw&quot;类产品）的发布，超大尺寸旗舰模型（如智谱GLM5-Turbo、Qwen3.5-Omni-Plus、MiniMax M2.7、小米MiMo-V2-Pro）仅发布公告而未实质更新。开源侧则相对活跃，以小模型、垂直能力模型为主。
+
+&gt; **月度最大开源事件**：Anthropic Claude Code 源码意外泄露，形成&quot;被动开源&quot;（GitHub: instructkr/claude-code）。
+
+---
+
+## 二、开源模型清单（按时间排序）
+
+### 🖼️ 视觉与图像处理
+
+| 日期 | 模型 | 机构 | 关键信息 |
+|------|------|------|----------|
+| 2月28日 | FireRed-OCR | 小红书 | 2B参数，针对**结构幻觉**问题优化 |
+| 3月3日 | FireRed-Image-Edit-1.1 | 小红书 | 图像编辑，支持ID一致性、多元素融合、人像美妆、字体风格参考 |
+| 3月9日 | Penguin-VL | 腾讯 | 视觉大模型，含2B、8B及encoder三个版本 |
+| 3月18日 | Qianfan-OCR | 百度 | 4B参数，OmniDocBench v1.5榜首（93.12分） |
+| 3月19日 | dots.mocr / dots.mocr-svg | 小红书 | 3B参数，多语言OCR + 图像到SVG解析 |
+
+### 🎵 音频与语音
+
+| 日期 | 模型 | 机构 | 关键信息 |
+|------|------|------|----------|
+| 3月1日 | LeVo 2 | Tencent AI Lab | 4B，支持4分半全曲生成 |
+| 3月16日 | Covo-Audio-Chat | 腾讯 | 语音模型，支持**原生全双工** |
+| 3月17日 | Fun-CineForge | 通义实验室 | 影视级配音多模态大模型 |
+| 3月31日 | LongCat-AudioDiT | 美团龙猫 | 扩散架构TTS模型 |
+
+### 🤖 多模态与通用大模型
+
+| 日期 | 模型 | 机构 | 关键信息 |
+|------|------|------|----------|
+| 3月2日 | Qwen3.5（0.8B/2B/4B/9B） | 阿里千问 | 9B视觉能力超越Gemini 2.5 Flash-Lite、Qwen3-VL-30b-A3b |
+| 3月4日 | Yuan3.0 Ultra | 浪潮 | **1010B**参数，面向企业真实场景优化 |
+| 3月6日 | InternVL-U | 上海人工智能实验室 | 4B，统一多模态（理解+推理+生成+编辑） |
+| 3月26日 | LongCat-Next | 美团龙猫 | 原生全模态，激活参数3B，支持文本/语音/图像输入输出 |
+
+### 🎬 视频与动画生成
+
+| 日期 | 模型 | 机构 | 关键信息 |
+|------|------|------|----------|
+| 3月4日 | Helios | 北京大学 | 14B，单张H100以**19.5 FPS**生成分钟级视频 |
+| 3月6日 | OmniLottie | OpenVGLab | 多模态指令驱动的**矢量动画**端到端生成框架 |
+
+### 🧠 推理、编码与专业模型
+
+| 日期 | 模型 | 机构 | 关键信息 |
+|------|------|------|----------|
+| 3月1日 | MiroThinker-1.7 | MiroMind | 强化长链条Agent任务，256K上下文，单任务最多**300次工具调用** |
+| 3月2日 | IQuest-Coder-V1 | 至知创新研究院 | 7B/14B/40B，含Base/Instruct/Thinking三版本 |
+| 3月4日 | Step-3.5-Flash-Base | 阶跃星辰 | Step 3.5-Flash基础模型开源 |
+| 3月21日 | LongCat-Flash-Prover | 美团龙猫 | 复杂**定理证明**专用模型 |
+
+---
+
+## 三、核心趋势与洞察
+
+1. **小模型密集开源**：主流开源模型集中在1B–9B区间，3B/4B成为多模态的主力参数量，兼顾能力与部署成本。
+
+2. **垂直能力深化**：OCR（小红书、百度）、定理证明（美团）、全双工语音（腾讯）等专项能力模型涌现，通用大模型向垂直场景下沉。
+
+3. **全模态成新方向**：美团LongCat-Next（文/图/音三模态输入输出）、上海AI Lab InternVL-U代表&quot;统一多模态&quot;的技术路径正在落地。
+
+4. **Agent能力成标配诉求**：MiroThinker-1.7明确强化Agent工具调用（300次/任务），但整体而言，支撑Agent的基础模型能力尚未形成突破，与应用层热度存在明显落差。
+
+5. **旗舰模型缺席**：DeepSeek-V4、GLM5-Turbo等超大模型均未在3月落地，市场关注度持续向4月延伸。
+
+---
+
+## 四、重点机构盘点
+
+| 机构 | 3月开源数量 | 主要方向 |
+|------|------------|----------|
+| 小红书 | 3个 | OCR、图像编辑、多语言解析 |
+| 美团龙猫 | 3个 | 全模态、定理证明、TTS |
+| 腾讯 | 2个 | 视觉、语音 |
+| 阿里千问 | 1个（4尺寸） | 小尺寸多模态 |
+| 上海AI Lab | 1个 | 统一多模态 |"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">从去年<mark class="hl-num">7月</mark>份开始，这已经是第<mark class="hl-num">9个</mark>篇总结了，希望可以坚持下去。</p>
+<p class="excerpt-p"><mark class="hl-num">3月</mark>份，是OpenClaw制霸的一个月，各家主要以<mark class="hl-action">推出</mark>各种Claw为主，</p>
+<p class="excerpt-p">大模型这一块，超大尺寸的模型，基本上各家都是<mark class="hl-action">发布</mark>，但没更新，</p>
+<p class="excerpt-p">不过，<mark class="hl-num">3月</mark>最nb的开源，应该就是昨天Anthropic把Claude Code源码泄露的被动开源吧。</p>
+<p class="excerpt-p">下面是<mark class="hl-num">3月</mark>开源模型汇总，如下：</p>
+<p class="excerpt-p"><mark class="hl-num">2月</mark>28日，小红书开源FireRed-OCR模型，2B参数，重点针对结构幻觉问题进行了优化。</p>
+<p class="excerpt-p"><mark class="hl-num">3月</mark>1日，Tencent AI Lab 开源 LeVo 2 音乐模型，4B大小，可支持 4 分半全曲生成。</p>
+<p class="excerpt-p"><mark class="hl-num">3月</mark>1日，MiroMind <mark class="hl-action">发布</mark> MiroThinker-1.7模型，专门强化了长链条Agent任务能力和工具调用的能力，支持256K上下文，单任务最多<mark class="hl-num">300次</mark>工具调用。</p>
+<p class="excerpt-p"><mark class="hl-num">3月</mark>2日，千问开源了Qwen3.5的<mark class="hl-num">4个</mark>尺寸小模型-0.8B 、2B 、4B、9B，同时9b模型在视觉上，超越Gemini 2.5 Flash-Lite，Qwen3-VL-30b-A3b。</p>
+<p class="excerpt-p"><mark class="hl-num">3月</mark>2日，至知创新研究院开源IQuest-Coder-V1系列模型，包含7B、14B、…</p></div></details>
+</div></div>
+<div class="panel" id="panel-卡尔的AI沃茨" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=Mzg3MTk3NzYzNw==&amp;mid=2247506051&amp;idx=1&amp;sn=c24dbfc1c75d60311f647363cacfeb59&amp;chksm=cef4df49f983565fbc72ed51ab5e5729b1a7aa7dca364c1a2eee1382084e919f48e1074cbea1#rd" target="_blank">新版龙虾误伤微信后，反而让我找到了企微新的打开方式</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · 卡尔的AI沃茨</div>
+  <div class="card-summary" data-md="# 新版龙虾误伤微信后，企微新玩法总结报告
+
+## 一、核心事件
+
+OpenClaw 大版本更新后，拆除旧插件入口，导致微信 ClawBot 插件失效。**修复命令**：
+
+```bash
+npx -y @tencent-weixin/openclaw-weixin-cli install
+```
+
+修复后支持电脑端，微信插件新增发图片、视频、文件、语音能力。
+
+---
+
+## 二、企业微信插件重大更新
+
+**安装命令**：
+```bash
+npx -y @wecom/wecom-openclaw-cli install --force
+```
+
+**新增能力（30+ 变体中支持 16 个）**：拉群聊、新建日程/会议/待办、读取通讯录群发、写文档和表格。
+
+&gt; 当前限制：仅 **10 人以内企业**可开启全部技能（权限逐步放开中）；企微和微信插件均**暂不支持**读取公众号链接与视频号链接。
+&gt; 
+&gt; 亮点：企微已支持 **Markdown 格式**输出，链接可直接点击。
+
+---
+
+## 三、联网搜索能力强化方案
+
+**基础层**：12 个信息搜索 Skill（Tavily、Multi Search Engine、x-reader、Agent Reach、BrowserWing、ModSearch、Gemini Deep Research 等）。
+
+**补充层**（覆盖企微/公众号专用场景）：
+- `clawhub.ai/imwyvern/wechat-reader`
+- `clawhub.ai/chongjie-ran/wecom-file-sender`
+
+---
+
+## 四、内容读取 Skill 横向对比
+
+测试维度：读取成功率、内容完整性、结构化提取（标题/作者/发布时间/正文/链接）、登录态复用。
+
+测试平台：公众号、小红书、GitHub、B 站视频页。
+
+| Skill | 表现 |
+|---|---|
+| **agent-reach** | 满血状态四平台全部成功 |
+| **opencli** | 最强——小红书复用登录态读取个人视角数据，B 站可获取视频字幕正文 |
+| **web-access**（一泽开发） | 四平台全部成功，内容最接近真实浏览体验 |
+| **bb-browser** | 与新版 OpenClaw 不兼容，暂时拉胯；兼容状态下预计可覆盖三个平台 |
+
+**配置难度**（排除 bb-browser）：agent-reach &gt; web-access ≈ opencli（后两者配置简单，opencli 打开 Chrome 配置即可，web-access 额外安装一个插件）。
+
+---
+
+## 五、企微&quot;豪华套餐&quot;实战演示
+
+作者发出的完整指令：
+&gt; 用 opencli 抓 30 篇 OpenClaw 小红书帖子 → 获取摘要 → 写入企微表格 → 创建周一会议 → 读取通讯录 → 通知成员周一九点开会
+
+**结果**：Agent 逐步自动执行完成，企微从聊天工具升级为 **Agent 通信执行平台**。
+
+---
+
+## 六、核心洞察
+
+1. **沟通软件正在转型**：OpenClaw 正将微信、企微等通信软件接入 AI，使其从&quot;人类信息管道&quot;升级为&quot;Agent 执行入口&quot;，沟通与执行整合到同一界面。
+2. **AI 协同办公新形态**：不需要全新 App 或交互方式，而是让熟悉的环境&quot;长出新的灵魂&quot;。
+3. **关键想象空间**：若企微插件未来支持加入微信外部群，将实现史诗级能力扩展。"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">大家都更新最新版OpenClaw了吗！</p>
+<p class="excerpt-p">上周更新后微信ClawBot就下线了，简单说一下解决方法，在终端重跑一行命令就恢复了，而且现在电脑端也能用了</p>
+<p class="excerpt-p">丢给OpenClaw运行就好：</p>
+<p class="excerpt-p">npx -y @tencent-weixin/openclaw-weixin-cli install</p>
+<p class="excerpt-p">隔壁的企微更新后就更离谱了，30多个龙虾变体企微支持了<mark class="hl-num">16个</mark>，能拉群聊，新建日程，会议，代办，读取通讯录给人群发消息，也能写文档和表格。</p>
+<p class="excerpt-p">之前我就更新一版，用Tavily，Multi Search Engine，x-reader，Agent Reach，BrowserWing，ModSearch，Gemini Deep Reserach，等<mark class="hl-num">12个</mark>信息搜索Skill做联网提升。</p>
+<p class="excerpt-p">先用<mark class="hl-num">12个</mark>S...</p>
+<p class="excerpt-p">所以我跟自己一拍即合，按照读取，搜索和结构化提取三个维度，覆盖文章，短图文，视频页看看Skills们能不能成功读取，提取内容是否完整，结构化程度（提取标题、作者、<mark class="hl-action">发布</mark>时间、正文、链接）是否高，还有对登录态的适应性（人话说就是不用每次都要重新登陆了）</p>
+<p class="excerpt-p">帮我用opencli抓<mark class="hl-num">30篇</mark>openclaw的小红…</p></div></details>
+</div></div>
+<div class="panel" id="panel-开源星探" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzkwMjQ0NzI0OQ==&amp;mid=2247505782&amp;idx=1&amp;sn=f5d5c9f44736c84a055dd681e678efad&amp;chksm=c0a7fe88f7d0779e2013cdd66b29b8662fb33640e3e2bd4d4cada2130acf40c49d55c68b3a6e#rd" target="_blank">7 天 1.5K Stars！掀翻微信和飞书等大厂桌子！这个超高颜值龙虾客户端正式开源</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · 开源星探</div>
+  <div class="card-summary" data-md="# nexu：OpenClaw 桌面客户端开源项目分析报告
+
+## 一、项目概况
+
+| 项目 | 详情 |
+|------|------|
+| 名称 | nexu（读作&quot;奈苏&quot;，next to you） |
+| 定位 | OpenClaw 的开源桌面客户端（&quot;整车&quot;而非新框架） |
+| 开源协议 | MIT |
+| 上线数据 | 7天内获得 1,500+ GitHub Stars，3月22日起爆发式增长 |
+| 核心链接 | GitHub: nexu-io/nexu / 官网: nexu.io |
+
+---
+
+## 二、解决的核心问题
+
+nexu 针对 OpenClaw 社区已知的 **17个配置陷阱**，通过一个 **500行配置编译器**实现自动绕过，主要包括：
+
+| 问题 | nexu 解决方案 |
+|------|--------------|
+| Context window 暴力截断导致回复质量下降 | Safeguard 上下文压缩 + 质量下降时自动重试 |
+| 200K context 分配不合理 | 50%给对话历史，20K token 保底，旧对话自动归档向量记忆 |
+| 飞书连接改配置必须重启 | 注入 disabled 假账户预热插件，首次连接零重启 |
+| Slack 群消息静默丢失 | 全局强制 `groupPolicy: open` |
+| Bedrock/LiteLLM 返回 400 错误 | 全局设置 `supportsStore: false` |
+| 大改动导致服务中断 | 混合热重载：小改动热加载，大改动优雅重启 |
+| Docker 镜像 660MB，冷启动按分钟计 | 自研依赖闭包算法，体积压缩约一半，冷启动秒级 |
+
+---
+
+## 三、核心技术能力
+
+### 1. 系统级进程守护
+- 使用 macOS 原生 **LaunchAgent**（非子进程），崩溃后 2 秒自动重启，指数退避（2s→4s→8s→30s封顶）
+- 关窗口后工作流持续运行，重新打开瞬间重连
+- 进程退出策略：SIGTERM → 3s → SIGKILL，无僵尸进程
+
+### 2. 防休眠守护
+- 拦截 5 类 macOS 电源事件（合盖、低电量、深夜等），工作流不中断，不强制亮屏
+
+### 3. 多 IM 渠道内置接入
+- **微信**：扫码连接，Agent 直接作为聊天对象
+- **飞书**：27种字段类型全覆盖，流式卡片响应，批量操作优化
+- **Slack / Discord**：OAuth 一键授权
+
+### 4. 多模型支持（10个服务商）
+支持 Anthropic（Claude 4.6 Sonnet/Opus）、OpenAI（GPT-5.4/o3）、Google AI（Gemini 2.5）、智谱GLM、MiniMax、Kimi 2.5、SiliconFlow、PPIO、OpenRouter，以及 nexu Official（内测期间顶级模型免费无限用）。MiniMax 和 OpenAI 支持 OAuth 免填 API Key。
+
+### 5. 技能生态
+- 29个精选技能预装，远程目录走 CDN，每24小时自动同步，热装即用无需重启
+- 支持 ZIP 文件和 GitHub 仓库导入
+- 内置飞书 Skills 覆盖日历、多维表格、消息、文档等
+
+---
+
+## 四、与现有方案的核心差异
+
+| 维度 | OpenClaw 官方 | 典型托管方案 | nexu |
+|------|--------------|-------------|------|
+| 模型选择 | 手动配置 | 平台指定 | GUI 一键切换 |
+| 数据路径 | 本地 | 经第三方服务器 | 本机优先 |
+| 费用 | 免费需自行部署 | 订阅/按席收费 | 客户端免费，用自己 API Key |
+| 使用门槛 | CLI，需技术背景 | 视产品而定 | 纯 GUI，双击即用 |
+| IM 渠道 | 需自行对接 | 视产品而定 | 内置微信、飞书、Slack、Discord |
+
+---
+
+## 五、快速上手
+
+```bash
+# 方式一：官网下载 Mac 安装包，双击启动（推荐）
+
+# 方式二：源码构建
+git clone https://github.com/nexu-io/nexu.git
+cd nexu &amp;&amp; pnpm install &amp;&amp; pnpm start
+```
+
+启动后可选择 nexu 账号登录（内测免费）或直接填入自己的 API Key，随后在设置页连接 IM 渠道即可。
+
+---
+
+## 六、核心洞察
+
+nexu 的价值主张不是&quot;让 AI 更聪明&quot;，而是**让门槛消失**——将 OpenClaw 从&quot;开发者折腾工具&quot;变为&quot;普通人双击即用的 AI Agent 平台&quot;。其商业逻辑清晰：工程能力（填坑+降体积+GUI化）是护城河，IM 渠道内置（尤其微信+飞书）是中国市场的关键差异化，MIT 开源则是快速建立社区信任的路径。**7天1.5K Stars 的增速，本质上是&quot;可用性溢价&quot;在开发者社区的快速兑现。**"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">这还只是 <mark class="hl-num">5 个</mark>。社区里被反复报告的已知陷阱，至少有 <mark class="hl-num">17 个</mark>。</p>
+<p class="excerpt-p">它做的事情很硬核：写了一个 500 行的配置编译器，把 OpenClaw 的 <mark class="hl-num">17 个</mark>已知陷阱全部自动绕过，然后把整个运行时打包成一个双击就能用的桌面应用。</p>
+<p class="excerpt-p">开源仅一周，nexu 就已拿下 1,500+ Star，<mark class="hl-action">增长</mark>速度相当惊人。</p>
+<p class="excerpt-p">▲ Star <mark class="hl-action">增长</mark>曲线：<mark class="hl-num">3 月</mark> 22 日起呈爆发式<mark class="hl-action">增长</mark></p>
+<p class="excerpt-p">1、500 行配置编译器，<mark class="hl-num">17 个</mark>陷阱自动绕过</p>
+<p class="excerpt-p">• Safeguard 上下文压缩：质量<mark class="hl-action">下降</mark>时自动重试，不再像默认模式那样暴力截断</p>
+<p class="excerpt-p">• 200K context window：<mark class="hl-num">50%</mark> 给对话历史，20K token 保底，旧对话自动归档到向量记忆</p>
+<p class="excerpt-p">• 飞书预热 hack：注入 disabled 假账户预加载插件，<mark class="hl-action">首次</mark>连接零重启</p>
+<p class="excerpt-p">• 飞书：深度调优——<mark class="hl-num">27 种</mark>字段类型全覆盖，流式卡片响应实时反馈，批量操作优化</p>
+<p class="excerpt-p">nexu 不绑定任何单一模型，目前已支持 <mark class="hl-num">10 个</mark>模型服务商：</p>
+<p class="excerpt-p">▲ nexu 设置页：<mark class="hl-num">10 个</mark>模型服务商，点击即切换</p>
+<p class="excerpt-p"><mark class="hl-num">29 个</mark>精选技能预装，远程技能目录走 CDN，每 24 小时自动同步。</p>
+<p class="excerpt-p">▲ nexu 技能页：<mark class="hl-num">29 个</mark> Skills 已安装，涵盖编码、微信、日历等</p></div></details>
+</div></div>
+<div class="panel" id="panel-探索AGI" style="display:none">
+<div class="article-card" data-date="2026-04-01">
+  <div class="card-header">
+    <a class="card-title" href="http://mp.weixin.qq.com/s?__biz=MzkxNjcyNTk2NA==&amp;mid=2247491924&amp;idx=1&amp;sn=c07a43275a5f2318b282e44c8e669ccf&amp;chksm=c14928f7f63ea1e1ac3bedd13d3d601553da23a7c8bdb69dd2910b8d6c097a1031009d925093#rd" target="_blank">十个顶级 Claude Code Skills，搭配泄露源码食用最佳。</a>
+    <span class="card-score" style="background:#7f8c8d">0分</span>
+  </div>
+  <div class="card-meta">2026-04-01 · 探索AGI</div>
+  <div class="card-summary" data-md="# Claude Code Skills 精选指南：十大实用技能总结
+
+## 一、背景与核心概念
+
+**事件背景**：Claude Code 源码近期被&quot;被动开源&quot;，预计将推动国产 Coding 工具迎来一波加强。
+
+**核心概念区分**：
+| 类型 | 定义 | 组成 |
+|------|------|------|
+| **Skill** | 带 `SKILL.md` 的文件夹，告诉 Claude 特定任务的处理方式 | 规则文件 |
+| **Plugin** | Skill 的超集 | 命令 + SubAgent + Hook + MCP 服务器 |
+
+&gt; **通用性说明**：Skills 已是 AI 编程工具标配，在 Codex、OpenCode 等工具中同样适用，并非 Claude Code 专属。
+
+---
+
+## 二、十大精选 Skills 详解
+
+### 1. Superpowers — 全流程规则集合
+- **覆盖范围**：20+ 可组合模块，覆盖需求讨论→测试→提交全流程
+- **核心亮点**：
+  - **Brainstorming 模块**：强制 Claude 先讨论方案、梳理决策点、生成设计文档，再写代码，显著减少返工
+  - **TDD 模块**：强制先写测试再实现逻辑，测试不过持续迭代
+- **使用建议**：20+ 模块同时开启上下文压力大，建议常开 2-3 个，按需启用其余
+- **安装**：`claude plugin install superpowers`
+
+---
+
+### 2. Ralph Loop — 防止 Claude 中途收工
+- **解决痛点**：Claude 完成部分任务后自行停止，输出&quot;基本框架已完成&quot;等敷衍结果
+- **实现机制**：通过 **Stop Hook** 拦截退出行为，检查预设完成条件，未达标则将任务重新推回
+- **关键细节**：完成条件必须极度具体（如&quot;JWT 登录注册接口可调用、单元测试全过、API 文档写进 README、完成后打印 COMPLETE&quot;），避免 Claude 自我说服已完成
+- **安装**：`claude plugin install ralph-loop`
+
+---
+
+### 3. Planning with Files — 规划状态持久化
+- **解决痛点**：Claude 内置规划仅存于上下文，上下文压缩后规划丢失，长任务中途迷失
+- **实现机制**：将计划、进度、中间知识点全部以 Markdown 文件写入磁盘，每步完成后更新，上下文截断后读文件即可恢复状态
+- **参考对标**：与 Manus 处理复杂任务的内部机制类似
+- **安装**：`claude plugin install planning-with-files`
+
+---
+
+### 4. Code Review — 多 Agent 并行审查
+- **实现机制**：并行启动多个 Agent，分别专注不同维度（逻辑漏洞、安全风险、代码规范），每条反馈附带**置信度分数**，只展示高置信度结果
+- **核心价值**：过滤&quot;建议加错误处理&quot;等正确但无用的噪音，保留真正需要关注的问题
+- **代价**：多 Agent 并行 token 消耗高，建议**先拆 PR 再审**
+- **安装**：`claude plugin install code-review`
+
+---
+
+### 5. Code Simplifier — 代码结构精简
+- **功能定位**：扫描近期修改代码，识别重复逻辑、多余变量、可合并分支，做纯结构简化（功能不变）
+- **最佳使用场景**：赶工写完、逻辑跑通但代码质量差、不想手动重构时
+- **安装**：`claude plugin install code-simplifier`
+
+---
+
+### 6. UI UX Pro Max — 前端设计系统升级
+- **解决痛点**：Claude 默认前端风格单一（渐变背景、圆角卡片、居中布局）
+- **能力规格**：67 种 UI 风格、161 套行业配色方案，根据项目类型推荐设计语言（色板+排版+交互模式）
+- **技术栈支持**：React、Vue、Svelte、SwiftUI、Flutter
+- **安装**：`claude plugin install ui-ux-pro-max@ui-ux-pro-max-skill`
+
+---
+
+### 7. Webapp Testing — 自动化前端测试
+- **工作流程**：描述测试场景 → Claude 生成 Playwright 脚本 → 启动浏览器执行 → 截屏记录结果 → 失败自动 debug 并重试
+- **推荐搭配**：与 UI UX Pro Max 组合使用（前者管设计，后者管验证）
+- **安装**：`claude plugin install example-skills@anthropic-agent-skills`
+
+---
+
+### 8. MCP Builder — MCP Server 构建引导
+- **解决痛点**：从头实现 MCP Server 工程细节繁琐
+- **四步流程**：理解目标 API → 设计工具接口 → 实现 → 测试
+- **核心优势**：相比直接提示，能主动覆盖限流、鉴权刷新、超时重试等工程边界情况
+- **安装**：`claude plugin install example-skills@anthropic-agent-skills`
+
+---
+
+### 9. PPTX — 直接生成演示文稿
+- **能力**：输出 `.pptx` 文件，支持母版、图表、动画
+- **局限**：生成结果需手动打磨排版和配色，不能直接用于汇报
+- **价值**：跳过&quot;对着空白页发呆&quot;阶段，提供可迭代的初稿底子
+- **安装**：`claude plugin install document-skills@anthropic-agent-skills`
+
+---
+
+### 10. Skill Creator — 造 Skill 的 Skill（Meta 工具）
+- **来源**：Anthropic 官方出品
+- **核心更新**：内置 **eval 框架**，支持为 Skill 编写测试用例、跑 A/B 对比，量化有无 Skill 的效果差异（解决了以往只能凭感觉评估的问题）
+- **安装**：`claude plugin install skill-creator`
+
+---
+
+## 三、使用策略与最佳实践
+
+**核心原则**：Skill 不是装得越多越好，过多会导致互相冲突且上下文撑不住（官方仓库也仅精选 14 个插件）。
+
+**推荐分组策略**：
+```
+全局配置：Superpowers + Ralph Loop + Planning with Files（通用基础）
+项目目录：UI/测试/MCP 等专项 Skill（提交至 Git，便于团队共享，不污染其他项目）
+```
+
+**进阶学习路径**：结合 Claude Code 泄露源码中的 **Harness Engineering 设计** + 上述 Skills 规则系统，双轨学习效果更佳。
+
+---
+
+## 四、资源索引
+
+| 资源 | 链接 |
+|------|------|
+| Anthropic 官方 Skills 仓库 | github.com/anthropics/skills |
+| Anthropic 官方 Plugins 仓库 | github.com/anthropics/claude-plugins-official |
+| 社区 Awesome Claude Skills | github.com/travisvn/awesome-claude-skills |
+| Skills 市场 | skillsmp.com |
+| Claude Code Skills 文档 | code.claude.com/docs/en/skills |"><div class="summary-label">AI 摘要</div></div>
+  <details open><summary>正文节选</summary><div class="card-excerpt"><p class="excerpt-p">Claude Code 昨天被“被动开源”了。预计国产Coding工具，近一个月会迎来一波史诗级加强。</p>
+<p class="excerpt-p">今天不聊源码，聊 Skill。当大家都可以安装部署自己的Claude Code，（源码缺失了一些东西，但是已经有开源把部署轮子补上的项目了），学习里边的Harness Engineering设计。</p>
+<p class="excerpt-p">剩下比较核心的一环是 plugin，skills 就显得特别重要了。我用了一年多的Claude Code，Skill 和 Plugin 装了几十个，删了一半。</p>
+<p class="excerpt-p">今天挑十个我用得最多的，每个附安装命令，拿去直接用。</p>
+<p class="excerpt-p">Skill 和 Plugin 的区别：Skill 就是一个带 SKILL.md 的文件夹，告诉 Claude 遇到某类任务该怎么做。Plugin 多了命令、SubAgent、Hook、MCP 服务器这些东西，更完整。</p>
+<p class="excerpt-p">Claude 想收工，Hook 检查你预设的完成条件，没<mark class="hl-action">达到</mark>就把任务原样塞回去，让它继续干。</p>
+<p class="excerpt-p"><mark class="hl-num">67 种</mark> UI 风格、161 套行业配色方案，它会根据你的项目类型推荐对应的设计语言，从色板到排版到交互模式一步到位。</p>
+<p class="excerpt-p">昨天泄露的源码也印证了这一点——官方仓库也就 <mark class="hl-num">14 个</mark>精选插件，不是什么都往里塞。</p></div></details>
+</div></div>
+
+  </div>
+</div>
+<script>
+const WC_DATA = [["Claude", 40], ["Code", 40], ["Agent", 30], ["神人拆解", 14], ["源码", 14], ["源码里真正的高杠", 14], ["杆用法", 14], ["本质上是一个多", 14], ["编排平台", 14], ["ClaudeCode", 14], ["大泄密", 14], ["万字保姆级别部署", 14], ["教程", 14], ["命中系统全公开了", 14], ["Cache", 14], ["复旦大学", 14], ["阶跃星辰联合开源", 14], ["图像编辑模型", 14], ["面向细粒度", 14], ["连续可控人脸表情", 14], ["编辑的方法", 14], ["PixelSmile", 14], ["热门榜单推荐", 14], ["参数", 14], ["性能", 14], ["超低延迟", 14], ["种语言语音生成转", 14], ["录和", 14], ["音频输出", 14], ["HuggingFace", 14], ["Voxtral", 14], ["TTS", 14], ["SOTA", 14], ["kHz", 14], ["探索水下世界的火", 14], ["眼金睛", 14], ["中科大等联合提出", 14], ["首个大规模水下开", 14], ["放词汇分割基准", 14], ["让海洋探索更精准", 14], ["CVPR", 14], ["MARIS", 14], ["阿里开源电影级配", 14], ["音神器", 14], ["也能分饰多角", 14], ["支持独白", 14], ["旁白", 14], ["对话", 14], ["音色克隆等过功能", 14], ["Fun", 14], ["CineForge", 14], ["上千万浏览", 14], ["大神教你深度玩转", 14], ["顶级模型得分低于", 14], ["全新人机较量", 14], ["揭开智能体真实水", 14], ["ARC", 14], ["AGI", 14], ["招聘游戏自媒体领", 14], ["域文案编辑", 14], ["运营", 14], ["寻找懂游戏", 14], ["爱出海的", 14], ["头号玩家", 14], ["小沓", 14], ["智能营销产品核心", 14], ["技术发布", 14], ["驱动", 14], ["重塑", 14], ["营销新基建", 14], ["Multi", 14], ["视频最难的一关", 14], ["可能真的过了", 14], ["PixVerse", 14], ["语言模拟", 14], ["世界模拟", 14], ["的下一张王牌是", 14], ["经历", 14], ["全国首部", 14], ["智能体应用评估", 14]];
+const TOP_ARTS = [{"title": "神人拆解CC源码！源码里真正的高杠杆用法；ClaudeCode本质上是一个多Agent编排平台", "url": "http://mp.weixin.qq.com/s?__biz=MjM5ODI5Njc2MA==&mid=2655937734&idx=1&sn=a2885245cf3e559778ced3af5c8142f5&chksm=bd7629118a01a007f89891dd6168a12deaf42650a48315b6b64ede5d657dc2fb648b3ea0868d#rd", "score": 0, "account": "51CTO技术栈"}, {"title": "Claude Code 大泄密！万字保姆级别部署教程，Cache命中系统全公开了？", "url": "http://mp.weixin.qq.com/s?__biz=Mzg4MDY3MzcxMA==&mid=2247489087&idx=1&sn=9015a887adef661e4343eefd4ca1026a&chksm=cf70c0fef80749e83c532760ad8b7288fd41ab51afae16a33773eb59a251b79831abdd26793b#rd", "score": 0, "account": "AI Humanist by杉森楠"}, {"title": "复旦大学 × 阶跃星辰联合开源图像编辑模型 PixelSmile：面向细粒度、连续可控人脸表情编辑的方法。", "url": "http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&mid=2247500442&idx=1&sn=981be0ebb1bbf916f29700a6c693f553&chksm=fcf53d7bcb82b46d67a42a4aeb5517f37637db997004bf0a97371c194094492e0adf48954cc8#rd", "score": 0, "account": "AIGC Studio"}, {"title": "HuggingFace热门榜单推荐！Voxtral TTS，仅4B参数SOTA性能，超低延迟9种语言语音生成转录和24kHz音频输出。", "url": "http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&mid=2247500442&idx=2&sn=44997252f7f75da41a1666261aaac712&chksm=fcf53d7bcb82b46d567abe6172f7f0a604247a1b2d28912a06f757eee8a85a68161d4bb5b4ed#rd", "score": 0, "account": "AIGC Studio"}, {"title": "CVPR 2026 | 探索水下世界的火眼金睛！中科大等联合提出MARIS，首个大规模水下开放词汇分割基准，让海洋探索更精准。", "url": "http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&mid=2247500442&idx=3&sn=f03b95459da6a62bcc0f3b66a9d37299&chksm=fcf53d7bcb82b46d3769d6aa51d511c9d9c4937c381f5260bdf0619603f3d7545ad41a43aa4d#rd", "score": 0, "account": "AIGC Studio"}, {"title": "阿里开源电影级配音神器：Fun-CineForge，AI也能分饰多角，支持独白/旁白/对话/音色克隆等过功能。", "url": "http://mp.weixin.qq.com/s?__biz=MzU2OTg5NTU2Ng==&mid=2247500442&idx=4&sn=bc5c7735f7b5766dec20eea274b3be62&chksm=fcf53d7bcb82b46dd586048c7658bbd6d12bb929aab994246b8928514a3d29b63c2e69c91715#rd", "score": 0, "account": "AIGC Studio"}, {"title": "上千万浏览，大神教你深度玩转Claude Code", "url": "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&mid=2247526068&idx=1&sn=d6d3b4ca8f07f4afcc3b5c78dd18faca&chksm=cedb389ef9acb1889a911b41ea7e568a3b3b9bffd72c6c7095c22d052e72822259263da74450#rd", "score": 0, "account": "AIGC开放社区"}, {"title": "顶级模型得分低于1%：ARC-AGI-3全新人机较量，揭开智能体真实水平", "url": "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&mid=2247526068&idx=2&sn=1d3ea7b6ce80424b7c8e0aabe3a532dc&chksm=cedb389ef9acb1889e79693ba1d823021836d1f45344672dda96e0d5a621e2e2b53a7f78496a#rd", "score": 0, "account": "AIGC开放社区"}, {"title": "招聘游戏自媒体领域文案编辑/运营，寻找懂游戏、爱出海的“头号玩家”", "url": "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&mid=2247526068&idx=4&sn=5a546a58b2a2c15b2cdf53cd782c6706&chksm=cedb389ef9acb188f3b6e2701261f7c49fbbdeeab76018462c8e91a8c47302f519c1c4f12370#rd", "score": 0, "account": "AIGC开放社区"}, {"title": "小沓AI・智能营销产品核心技术发布！Multi Agent驱动，重塑AI营销新基建", "url": "http://mp.weixin.qq.com/s?__biz=Mzg3Mzg5MjY3Nw==&mid=2247526068&idx=3&sn=6e74158f6ff84ea733264a4b94b1415e&chksm=cedb389ef9acb188a6ee1c93794141b05cddc0b2991e4da83879cac133128cd0f2d82e81f822#rd", "score": 0, "account": "AIGC开放社区"}];
+
+// 词云
+(function(){
+  try {
+    WordCloud(document.getElementById('wc-canvas'), {
+      list: WC_DATA, gridSize: 8, weightFactor: 2.2,
+      fontFamily: 'PingFang SC,sans-serif',
+      color: function() {
+        return ['#2c3e7a','#3498db','#e74c3c','#16a085','#e67e22','#8e44ad'][Math.floor(Math.random()*6)];
+      },
+      rotateRatio: 0.3, rotationSteps: 2, backgroundColor: 'transparent', drawOutOfBound: false
+    });
+  } catch(e) {
+    const cvs = document.getElementById('wc-canvas');
+    const fb = document.createElement('div'); fb.className = 'wc-fallback';
+    WC_DATA.slice(0,40).forEach(function(d) {
+      const sp = document.createElement('span');
+      sp.textContent = d[0]; sp.style.fontSize = Math.min(d[1]/3+10,28)+'px';
+      fb.appendChild(sp);
+    });
+    cvs.parentNode.replaceChild(fb, cvs);
+  }
+})();
+
+// Top 10
+(function(){
+  const el = document.getElementById('topList');
+  TOP_ARTS.forEach(function(a, i) {
+    const rc = i===0?'gold':i===1?'silver':i===2?'bronze':'';
+    el.innerHTML += '<div class="top-item"><div class="top-rank '+rc+'">'+(i+1)+'</div>'
+      +'<div><a href="'+a.url+'" target="_blank">'+a.title+'</a>'
+      +'<div class="top-item-meta">'+a.account+' · '+a.score+'分</div></div></div>';
+  });
+})();
+
+// Markdown 渲染 AI 摘要
+(function(){
+  if (typeof marked === 'undefined') return;
+  marked.setOptions({breaks: true, gfm: true});
+  document.querySelectorAll('.card-summary[data-md]').forEach(function(el) {
+    const label = el.querySelector('.summary-label');
+    const raw = el.getAttribute('data-md');
+    if (!raw) return;
+    el.innerHTML = '';
+    if (label) el.appendChild(label);
+    const div = document.createElement('div');
+    div.innerHTML = marked.parse(raw);
+    el.appendChild(div);
+  });
+})();
+
+function showPanel(id) {
+  document.querySelectorAll('.panel').forEach(function(p) { p.style.display = 'none'; });
+  const el = document.getElementById('panel-' + id);
+  if (el) el.style.display = '';
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  const ni = document.querySelector('[data-acc="' + id + '"]');
+  if (ni) ni.classList.add('active');
+}
+
+function applyDateFilter() {
+  const from = document.getElementById('dateFrom').value;
+  const to   = document.getElementById('dateTo').value;
+  let total = 0;
+  document.querySelectorAll('.nav-item').forEach(function(nav) {
+    const accId = nav.dataset.acc;
+    const panel = document.getElementById('panel-' + accId);
+    if (!panel) return;
+    let visible = 0;
+    panel.querySelectorAll('.article-card').forEach(function(card) {
+      const d = card.dataset.date || '';
+      const show = (!from || d >= from) && (!to || d <= to);
+      card.style.display = show ? '' : 'none';
+      if (show) visible++;
+    });
+    total += visible;
+    nav.classList.toggle('empty-filtered', visible === 0);
+    const badge = nav.querySelector('.nav-badge');
+    if (badge) badge.textContent = visible;
+  });
+  document.getElementById('filterCount').textContent = '共 ' + total + ' 篇';
+}
+
+function setToday() {
+  const t = new Date().toISOString().slice(0,10);
+  document.getElementById('dateFrom').value = t;
+  document.getElementById('dateTo').value   = t;
+  applyDateFilter();
+}
+
+document.getElementById('dateFrom').addEventListener('change', applyDateFilter);
+document.getElementById('dateTo').addEventListener('change', applyDateFilter);
+applyDateFilter();
+showPanel('home');
+</script>
+</body>
+</html>

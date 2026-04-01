@@ -137,35 +137,52 @@ class WechatArticleParser:
         return "未知公众号"
 
     def _extract_publish_time(self, soup: BeautifulSoup) -> str:
-        """提取发布时间"""
-        # 尝试从多个位置提取发布时间
+        """提取发布时间（优先从 JS 变量中的 Unix 时间戳提取真实日期）"""
+        import datetime as _dt
+
+        # 1. 优先从页面 <script> 中提取 var ct = "Unix时间戳"（微信文章真实发布时间）
+        page_text = str(soup)
+        for pat in [
+            r'var\s+ct\s*=\s*["\'](\d{9,10})["\']',
+            r'"ct"\s*:\s*["\'](\d{9,10})["\']',
+            r'window\.__INITIAL_STATE__.*?"ct"\s*:\s*(\d{9,10})',
+            r'createTime\s*[:=]\s*["\']?(\d{9,10})',
+        ]:
+            m = re.search(pat, page_text)
+            if m:
+                ts = int(m.group(1))
+                if 1_000_000_000 <= ts <= 2_000_000_000:  # 合法 Unix 时间戳范围
+                    return _dt.datetime.fromtimestamp(ts).strftime('%Y-%m-%d')
+
+        # 2. 从 DOM 元素提取明文日期
         selectors = [
             {'id': 'publish_time'},
             {'class': 'rich_media_meta_text'},
-            {'id': 'post-date'}
+            {'id': 'post-date'},
         ]
-
         for selector in selectors:
-            if 'id' in selector:
-                elem = soup.find(id=selector['id'])
-            elif 'class' in selector:
-                elem = soup.find(class_=selector['class'])
-
+            elem = (soup.find(id=selector['id']) if 'id' in selector
+                    else soup.find(class_=selector['class']))
             if elem:
                 time_text = elem.get_text().strip()
-                # 尝试提取日期格式
-                date_match = re.search(r'\d{4}-\d{2}-\d{2}', time_text)
+                date_match = re.search(r'\d{4}[-年]\d{1,2}[-月]\d{1,2}', time_text)
                 if date_match:
-                    return date_match.group()
+                    raw = date_match.group()
+                    # 兼容 "2025年8月27日" 格式
+                    normalized = re.sub(r'[年月]', '-', raw).rstrip('日')
+                    parts = [p.zfill(2) for p in normalized.split('-')]
+                    if len(parts) == 3:
+                        return '-'.join(parts)
 
-        # 尝试从meta标签提取
+        # 3. meta 标签
         meta_time = soup.find('meta', property='article:published_time')
         if meta_time:
             time_content = meta_time.get('content', '')
             if time_content:
-                return time_content[:10]  # 取前10位日期
+                return time_content[:10]
 
-        return datetime.now().strftime('%Y-%m-%d')
+        # 4. 实在拿不到：返回空字符串而非爬取当天，避免日期污染
+        return ''
 
     def _extract_content(self, soup: BeautifulSoup) -> str:
         """
