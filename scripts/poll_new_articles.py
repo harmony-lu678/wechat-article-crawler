@@ -276,6 +276,7 @@ def fetch_sogou(account_name: str, hours: int,
                 session: requests.Session) -> list[str]:
     """
     通过搜狗微信搜索账号名，返回近 N 小时内发布的文章 URL 列表。
+    跟进 Sogou 跳转链接（/link?url=...）获取真实 WeChat URL。
     """
     params = {
         "type": "2",          # 2=文章搜索
@@ -295,47 +296,65 @@ def fetch_sogou(account_name: str, hours: int,
     cutoff = now - timedelta(hours=hours)
     urls: list[str] = []
 
-    # 搜狗结果里的文章链接（跳转链接，需解析或直接提取 wx 链接）
-    # 1. 尝试直接找嵌入的 mp.weixin.qq.com 链接
-    wx_links = re.findall(
-        r'href="(https://mp\.weixin\.qq\.com/s[^"]+)"', html
-    )
-    # 2. 搜狗跳转链接：/link?url=... 含日期戳的条目
-    sogou_items = re.findall(
-        r'<div class="txt-box">(.*?)</div>\s*</div>',
+    # 1. 直接找 mp.weixin.qq.com 链接（旧格式）
+    wx_direct = re.findall(r'href="(https://mp\.weixin\.qq\.com/s[^"]+)"', html)
+    urls.extend(wx_direct)
+
+    # 2. 找 Sogou 跳转链接 /link?url=... 并附带日期
+    #    新版页面结构：<a href="/link?url=..." ...>标题</a> ... <span>日期</span>
+    sogou_redirect_pattern = re.findall(
+        r'href="(/link\?url=[^"]+)"[^>]*>.*?'
+        r'(\d{4}-\d{2}-\d{2}|\d+小时前|\d+分钟前|昨天|刚刚)',
         html, re.DOTALL
     )
 
-    # 从搜狗 article 结构提取（简化版）
-    # 每条结果格式：<span class="s2">账号名</span>...<span class="s3">日期</span>
-    # 以及 <a href="..."> 链接
-    article_blocks = re.findall(
-        r'uigs="article_title_\d+"[^>]*href="([^"]+)"[^>]*>.*?'
-        r'<span class=["\']s3["\']>([^<]+)<',
-        html, re.DOTALL
-    )
+    # 3. 若上面没匹配到日期，直接取所有 /link?url= 跳转链接（不超过10条）
+    all_sogou_links = re.findall(r'(/link\?url=[A-Za-z0-9_\-]+)', html)
+    # 去重且只取前 8 条（每条需发一次 HTTP 请求）
+    unique_sogou = list(dict.fromkeys(all_sogou_links))[:8]
 
-    for raw_url, date_str in article_blocks:
-        raw_url = raw_url.replace("&amp;", "&")
-        pub_dt = parse_sogou_date(date_str, now)
-        if pub_dt and pub_dt < cutoff:
-            continue
-        # 如果是搜狗跳转链接需要解析，先尝试提取直接链接
-        if "mp.weixin.qq.com" in raw_url:
-            if is_wx_article_url(raw_url):
-                urls.append(raw_url)
+    def resolve_sogou_link(path: str) -> Optional[str]:
+        """跟进 Sogou 跳转，返回真实 WeChat URL。"""
+        try:
+            r = session.get(
+                "https://weixin.sogou.com" + path,
+                headers=HEADERS_BROWSER,
+                allow_redirects=True,
+                timeout=10
+            )
+            final = r.url
+            if "mp.weixin.qq.com" in final:
+                return final
+            # 可能跳转到中间页，再从页面里找 wx 链接
+            found = re.search(r'(https://mp\.weixin\.qq\.com/s[^\s"\'<>]+)', r.text)
+            return found.group(1) if found else None
+        except Exception:
+            return None
 
-    # 补充直接找到的 wx 链接（可能有重复，外层去重）
-    urls.extend(wx_links)
+    if sogou_redirect_pattern:
+        for path, date_str in sogou_redirect_pattern:
+            path = path.replace("&amp;", "&")
+            pub_dt = parse_sogou_date(date_str, now)
+            if pub_dt and pub_dt < cutoff:
+                continue
+            wx_url = resolve_sogou_link(path)
+            if wx_url and is_wx_article_url(wx_url):
+                urls.append(wx_url)
+            time.sleep(0.5)
+    else:
+        # 无日期信息，逐条解析跳转链接
+        for path in unique_sogou:
+            wx_url = resolve_sogou_link(path)
+            if wx_url and is_wx_article_url(wx_url) and wx_url not in urls:
+                urls.append(wx_url)
+            time.sleep(0.5)
 
-    # 过滤纯链接中含 __biz 且与 account_name 不一定对应的情况
-    # 这里用 set 去重即可，精确度依赖搜索结果相关性
     return list(dict.fromkeys(urls))  # 保序去重
 
 
 # ── 主流程 ───────────────────────────────────────────────────────────────────
 
-def poll(hours: int = 24, dry_run: bool = False) -> int:
+def poll(hours: int = 24, dry_run: bool = False, force_sogou: bool = False) -> int:
     config = load_config()
     accounts = load_accounts()
     if not accounts:
@@ -357,7 +376,7 @@ def poll(hours: int = 24, dry_run: bool = False) -> int:
         "Referer": "https://mp.weixin.qq.com/",
     })
 
-    use_direct = bool(wx_cookie and wx_token)
+    use_direct = bool(wx_cookie and wx_token) and not force_sogou
     mode = "WeChat MP后台直连" if use_direct else "Sogou搜索"
     logger.info("轮询模式: %s | 窗口: 前 %d 小时 | 账号数: %d",
                 mode, hours, len(accounts))
@@ -416,10 +435,12 @@ def main():
                         help="抓取最近 N 小时内的文章（默认 24）")
     parser.add_argument("--dry-run", action="store_true",
                         help="仅打印，不写入 extra_urls.txt")
+    parser.add_argument("--sogou", action="store_true",
+                        help="强制使用 Sogou 搜索模式（跳过微信直连）")
     args = parser.parse_args()
 
     os.makedirs(os.path.join(ROOT, "logs"), exist_ok=True)
-    count = poll(hours=args.hours, dry_run=args.dry_run)
+    count = poll(hours=args.hours, dry_run=args.dry_run, force_sogou=args.sogou)  # type: ignore[call-arg]
     print(f"轮询完成，新增 {count} 篇文章链接")
 
 

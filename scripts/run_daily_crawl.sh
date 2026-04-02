@@ -18,8 +18,12 @@ fi
   echo "=== $(date -Iseconds) 开始 daily crawl ==="
 
   # Step 1: 轮询各公众号最新文章链接（前 24 小时），追加到 extra_urls.txt
-  echo "--- Step 1: 轮询新文章链接 ---"
-  "$PY" "$ROOT/scripts/poll_new_articles.py" --hours 24
+  # 微信直连限速时自动降级为 Sogou 模式
+  echo "--- Step 1: 轮询新文章链接（微信直连） ---"
+  "$PY" "$ROOT/scripts/poll_new_articles.py" --hours 24 || {
+    echo "--- Step 1 降级: Sogou 模式 ---"
+    "$PY" "$ROOT/scripts/poll_new_articles.py" --hours 24 --sogou || true
+  }
 
   # Step 2: 爬取 + AI 摘要 + 导出
   echo "--- Step 2: 爬取 & 摘要 ---"
