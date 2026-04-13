@@ -22,7 +22,7 @@ crawler:
 ai_summary:
   enabled: true  # 启用 AI，总结输出到 output/summary_report.md 与 summaries.json
   api_key: "sk-8iyYZG0dgZ0ZYOITHc04qg"  # API密钥
-  base_url: "http://10.185.0.178:8080/v1"  # API地址（OpenAI兼容接口）
+  base_url: "https://llm-gateway.ops.seaart.dev/v1"  # API地址（OpenAI兼容接口）
   model: "claude-sonnet-4-6"  # 模型名称
   # OpenAI 兼容接口（实际走 /v1/chat/completions）
   api_type: "openai"
